@@ -33,6 +33,7 @@ architecture Behavioural of processor is
   signal FSM_sel_PC_next : STD_LOGIC_VECTOR(1 downto 0);
   signal FSM_ld_opcode, FSM_ld_operand1 : STD_LOGIC;
 
+  signal FSM_ld_a_op1 : STD_LOGIC;
 
 begin
   
@@ -44,6 +45,20 @@ begin
 
   ROM_dataout_i <= ROM_dataout;
   ROM_address <= PC;
+
+  -------------------------------------------------------------------------------
+  -- REGISTERFILE
+  -------------------------------------------------------------------------------
+  PREG: process(reset_i, clock_i)
+  begin
+    if reset_i = '1' then 
+      regA <= x"00";
+    elsif rising_edge(clock_i) then
+      if FSM_ld_a_op1 = '1' then 
+        regA <= operand1;
+      end if;
+    end if;
+  end process; -- ending PREG
 
   -------------------------------------------------------------------------------
   -- INSTRUCTION REGISTER
@@ -160,18 +175,24 @@ begin
     FSM_sel_PC_offset <= '1'; -- RCA_PC adds x0001
     FSM_sel_PC_next <= "00"; -- 00: PC will not be updated;  11: PC will be loaded with result of RCA_PC
 
+    FSM_ld_a_op1 <= '0';
+
     case curState is
       when sFetch => 
         FSM_ld_opcode <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
       when sDecode =>
-        if opcode = x"C3" then 
+        if opcode = x"C3" or opcode = x"3E" then 
           -- do another read from ROM
           FSM_ld_operand1 <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
         end if;
 
+
       when sExecute => 
         if opcode = x"C3" then 
           FSM_sel_PC_next <= "01"; -- PC will be set by opcode
+        end if;
+        if opcode = x"3E" then 
+          FSM_ld_a_op1 <= '1';
         end if;
       when sDummy =>
         -- keep the defaults

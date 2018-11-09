@@ -50,7 +50,8 @@ begin
       -- Nintendo stuff
 
       -- start of program
-      when x"0150" => ROM_dataout_i <= x"c3";
+      when x"0150" => ROM_dataout_i <= x"3E";
+      when x"0151" => ROM_dataout_i <= x"AA";
 
       when others => ROM_dataout_i <= x"00";
     end case;
