@@ -22,6 +22,7 @@ architecture Behavioural of processor is
 
   signal SP, PC, PC_nxt, PC_nxt_sum : STD_LOGIC_VECTOR(15 downto 0);
   signal IR : STD_LOGIC_VECTOR(15 downto 0);
+  signal opcode, operand1 : STD_LOGIC_VECTOR(7 downto 0);
   signal ROM_dataout_i : STD_LOGIC_VECTOR(7 downto 0);
   signal RCA_PC_RO : STD_LOGIC_VECTOR(15 downto 0);
 
@@ -30,9 +31,8 @@ architecture Behavioural of processor is
   signal curState, nxtState : Tstates;
   signal FSM_sel_PC_offset : STD_LOGIC;
   signal FSM_sel_PC_next : STD_LOGIC_VECTOR(1 downto 0);
-  signal FSM_ld_IR : STD_LOGIC;
+  signal FSM_ld_opcode, FSM_ld_operand1 : STD_LOGIC;
 
-  signal opcode, opcode_d : STD_LOGIC_VECTOR(7 downto 0);
 
 begin
   
@@ -48,26 +48,26 @@ begin
   -------------------------------------------------------------------------------
   -- INSTRUCTION REGISTER
   -------------------------------------------------------------------------------
-  PREG_IR: process(reset_i, clock_i)
+  PREG_opcode: process(reset_i, clock_i)
   begin
     if reset_i = '1' then 
-      IR <= x"0000";
+      opcode <= x"00";
+      operand1 <= x"00";
     elsif rising_edge(clock_i) then 
-      if FSM_ld_IR = '1' then 
-        IR <= IR(7 downto 0) & ROM_dataout_i;
+      if FSM_ld_opcode = '1' then 
+        opcode <= ROM_dataout_i;
+      end if;
+      if FSM_ld_operand1 = '1' then 
+        operand1 <= ROM_dataout_i;
       end if;
     end if;
   end process;
-
-  opcode <= IR(7 downto 0);
-  opcode_d <= IR(15 downto 8);
-
 
   -------------------------------------------------------------------------------
   -- PROGRAM COUNTER
   -------------------------------------------------------------------------------
 
-  -- initial IRs from tetris:
+  -- initial opcodes from tetris:
   -- @ x0100 - x0103: 00c3 5001 => 00 is opcode for NOP, C3 is opcode for jp nn => JUMP address 0150 (LSByte first)
   -- @ x0104 - x0133: Nintendo logo
   --       CE ED 66 66 CC 0D 00 0B 03 73 00 83 00 0C 00 0D
@@ -93,7 +93,7 @@ begin
   begin
     case FSM_sel_PC_next is
       when "01" =>
-        PC_nxt <= ROM_dataout_i & opcode;   -- absolute jump
+        PC_nxt <= ROM_dataout_i & operand1;   -- absolute jump
       when "10" =>
         PC_nxt <= regH & regL; -- JUMP HL
       when "11" =>
@@ -104,10 +104,10 @@ begin
   end process;
 
   -- Arithmetic operations
-  PMUX_RCA_PC_RO: process(FSM_sel_PC_offset, IR)
+  PMUX_RCA_PC_RO: process(FSM_sel_PC_offset, opcode)
   begin
     case FSM_sel_PC_offset is
-      when '0' =>     RCA_PC_RO <= x"00" & IR(15 downto 8); -- relative jump
+      when '0' =>     RCA_PC_RO <= x"00" & opcode(15 downto 8); -- relative jump
       when others =>  RCA_PC_RO <= x"0001";         -- default PC increment
     end case;
   end process;
@@ -160,26 +160,27 @@ begin
   end process;
 
   -- FSM OUTPUT FUNCTION
-  P_FSM_OF: process(curState, opcode, opcode_d)
+  P_FSM_OF: process(curState, opcode)
   begin
     -- the defaults
-    FSM_ld_IR <= '0'; -- don't sample the incoming byte from ROM
+    FSM_ld_opcode <= '0'; -- don't sample the incoming byte from ROM into opcode
+    FSM_ld_operand1 <= '0'; -- don't sample the incoming byte from ROM into operand1
     FSM_sel_PC_offset <= '1'; -- RCA_PC adds x0001
     FSM_sel_PC_next <= "00"; -- 00: PC will not be updated;  11: PC will be loaded with result of RCA_PC
 
 
     case curState is
       when sFetch => 
-        FSM_ld_IR <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
+        FSM_ld_opcode <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
       when sDecode =>
         if opcode = x"C3" then 
           -- do another read from ROM
-          FSM_ld_IR <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
+          FSM_ld_operand1 <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
         end if;
 
       when sExecute => 
-        if opcode_d = x"C3" then 
-          FSM_sel_PC_next <= "01"; -- PC will be set by IR
+        if opcode = x"C3" then 
+          FSM_sel_PC_next <= "01"; -- PC will be set by opcode
         end if;
       when others =>
         -- keep the defaults
