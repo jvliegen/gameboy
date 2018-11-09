@@ -8,6 +8,10 @@ It took some time to figure out how to implement the fetch-decode-execute cycle.
 First simulation seems to be working:
 ![alt text](http://jo.jkl52.be/images/gameboy_journal/20181109.png "First running simulation")
 
+So ... I can start jumping (uncondionally, immediately and absolutly, that is), but it will be some time before Mario will start jumping.
+
+What's next ... see what Tetris did ? ... investigate the "LDA nn" instruction ... maybe sleep on it first.
+
 
 ## November 8th 2018
 Brilliant idea to rebuild a gameboy on an FPGA. Started with reading around on the internet. A valuable source seems to be the [GameBoy manual](http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf), who would have thought ?
