@@ -27,7 +27,7 @@ architecture Behavioural of processor is
   signal RCA_PC_RO : STD_LOGIC_VECTOR(15 downto 0);
 
   -- FSM signals
-  type Tstates is (sIdle, sIncrPC, sFetch, sDecode, sExecute, sWriteback);
+  type Tstates is (sIdle, sFetch, sDecode, sExecute, sDummy);
   signal curState, nxtState : Tstates;
   signal FSM_sel_PC_offset : STD_LOGIC;
   signal FSM_sel_PC_next : STD_LOGIC_VECTOR(1 downto 0);
@@ -144,16 +144,8 @@ begin
 
       when sFetch => nxtState <= sDecode;
       when sDecode => nxtState <= sExecute;
-        --case opcode is
-        --  when x"00" =>
-        --    nxtState <= sIncrPC;
-        --  when others => 
-        --    nxtState <= sIdle;
-        --end case;
-      when sExecute => nxtState <= sFetch;
-      --when sWriteback => nxtState <= sFetch;
-
-      --when sIncrPC => nxtState <= sIdle;
+      when sExecute => nxtState <= sDummy;
+      when sDummy => nxtState <= sFetch;
 
       when others => nxtState <= sIdle;
     end case;
@@ -168,7 +160,6 @@ begin
     FSM_sel_PC_offset <= '1'; -- RCA_PC adds x0001
     FSM_sel_PC_next <= "00"; -- 00: PC will not be updated;  11: PC will be loaded with result of RCA_PC
 
-
     case curState is
       when sFetch => 
         FSM_ld_opcode <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
@@ -182,6 +173,8 @@ begin
         if opcode = x"C3" then 
           FSM_sel_PC_next <= "01"; -- PC will be set by opcode
         end if;
+      when sDummy =>
+        -- keep the defaults
       when others =>
         -- keep the defaults
     end case;
