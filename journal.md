@@ -1,5 +1,8 @@
 # Development journal
 
+## November xth 2018
+
+
 ## November 9th 2018
 The ALU isn't too complex, but it IS large. Although there are only 8 registers, there are a lot of operations that can be applied to (some of) them. Because I will want to run testbenches, it might be handy to start with the "program flow" first. This way I can gradually implement all the assembly instructions and test them.
 
@@ -11,6 +14,8 @@ First simulation seems to be working:
 So ... I can start jumping (uncondionally, immediately and absolutly, that is), but it will be some time before Mario will start jumping.
 
 What's next ... see what Tetris did ? ... investigate the "LDA nn" instruction ... maybe sleep on it first.
+
+I added the acucumulator register A to the design, but only with the LDA instruction. This works, but there is not actual opcode decoding yet. Because the info is in the opcode, why not use it. That's the reason is there after all. Maybe it IS better to get some sleep first.
 
 
 ## November 8th 2018
