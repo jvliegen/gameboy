@@ -18,7 +18,9 @@ architecture Behavioural of processor is
 
   signal reset_i, clock_i : STD_LOGIC;
 
+  -- register file
   signal regA, regB, regC, regD, regE, regH, regL, regF : STD_LOGIC_VECTOR(7 downto 0);
+  signal regA_in, regB_in, regC_in, regD_in, regE_in, regH_in, regL_in, regF_in : STD_LOGIC_VECTOR(7 downto 0);
 
   signal SP, PC, PC_nxt, PC_nxt_sum : STD_LOGIC_VECTOR(15 downto 0);
   signal IR : STD_LOGIC_VECTOR(15 downto 0);
@@ -33,7 +35,8 @@ architecture Behavioural of processor is
   signal FSM_sel_PC_next : STD_LOGIC_VECTOR(1 downto 0);
   signal FSM_ld_opcode, FSM_ld_operand1 : STD_LOGIC;
 
-  signal FSM_ld_a_op1 : STD_LOGIC;
+  signal FSM_ld_a_op1, FSM_ld_b_op1, FSM_ld_c_op1, FSM_ld_d_op1 : STD_LOGIC;
+  signal FSM_ld_e_op1, FSM_ld_f_op1, FSM_ld_h_op1, FSM_ld_l_op1 : STD_LOGIC;
 
 begin
   
@@ -52,13 +55,29 @@ begin
   PREG: process(reset_i, clock_i)
   begin
     if reset_i = '1' then 
-      regA <= x"00";
+      regA <= x"00"; regB <= x"00"; regC <= x"00"; regD <= x"00";
+      regE <= x"00"; regF <= x"00"; regH <= x"00"; regL <= x"00";
     elsif rising_edge(clock_i) then
-      if FSM_ld_a_op1 = '1' then 
-        regA <= operand1;
-      end if;
+      if FSM_ld_a_op1 = '1' then regA <= regA_in; end if;
+      if FSM_ld_b_op1 = '1' then regB <= regB_in; end if;
+      if FSM_ld_c_op1 = '1' then regC <= regC_in; end if;
+      if FSM_ld_d_op1 = '1' then regD <= regD_in; end if;
+      if FSM_ld_e_op1 = '1' then regE <= regE_in; end if;
+      if FSM_ld_f_op1 = '1' then regF <= regF_in; end if;
+      if FSM_ld_h_op1 = '1' then regH <= regH_in; end if;
+      if FSM_ld_l_op1 = '1' then regL <= regL_in; end if;
     end if;
   end process; -- ending PREG
+
+  regA_in <= operand1;
+  regB_in <= operand1;
+  regC_in <= operand1;
+  regD_in <= operand1;
+  regE_in <= operand1;
+  regF_in <= operand1;
+  regH_in <= operand1;
+  regL_in <= operand1;
+
 
   -------------------------------------------------------------------------------
   -- INSTRUCTION REGISTER
@@ -177,6 +196,10 @@ begin
 
     FSM_ld_a_op1 <= '0';
 
+    FSM_ld_f_op1 <= '0';
+    FSM_ld_h_op1 <= '0';
+    FSM_ld_l_op1 <= '0';
+
     case curState is
       when sFetch => 
         FSM_ld_opcode <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
@@ -199,6 +222,31 @@ begin
       when others =>
         -- keep the defaults
     end case;
+  end process;
+
+
+  process(curState, opcode)
+  begin
+    FSM_ld_b_op1 <= '0';
+    FSM_ld_c_op1 <= '0';
+    FSM_ld_d_op1 <= '0';
+    FSM_ld_e_op1 <= '0';
+
+    if curState = sExecute then
+
+      -- LD r1, r2
+      if opcode(7 downto 6) = "01" then 
+        case opcode(5 downto 3) is
+          when "000" => FSM_ld_b_op1 <= '1';
+          when "001" => FSM_ld_c_op1 <= '1';
+          when "010" => FSM_ld_d_op1 <= '1';
+          when "011" => FSM_ld_e_op1 <= '1';
+          when "100" => FSM_ld_h_op1 <= '1';
+          when "101" => FSM_ld_l_op1 <= '1';
+        end case;
+      end if;
+
+    end if;
   end process;
 
 end Behavioural;
