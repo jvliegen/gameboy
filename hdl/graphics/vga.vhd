@@ -1,7 +1,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
-entity vga_v2 is
+entity vga is
   port (
     reset_n : in STD_LOGIC;
     clock : in STD_LOGIC;
@@ -16,9 +16,9 @@ entity vga_v2 is
     vgaBlue : out STD_LOGIC_VECTOR(3 downto 0);
     vgaGreen : out STD_LOGIC_VECTOR(3 downto 0)
   );
-end vga_v2;
+end vga;
 
-architecture Behavioral of vga_v2 is
+architecture Behavioral of vga is
 
   component clk_wiz_0 is 
     port (
