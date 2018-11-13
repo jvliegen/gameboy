@@ -2,7 +2,7 @@
 -- KULeuven - ESAT/COSIC- Embedded Systems & Security
 --------------------------------------------------------------------------------
 -- Module Name:     pixelStream_generator - behavioral
--- Project Name:    Hippocrates
+-- Project Name:     
 -- Description:     DVI video out timing
 --
 -- Revision     Date       Author     Comments
