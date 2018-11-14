@@ -1,4 +1,8 @@
 vivado*
 doc/*images*/*
+doc/*Specific*
+
+asm/*.o
+asm/*.gb
 
 gameboy.sublime*
