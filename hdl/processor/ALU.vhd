@@ -20,6 +20,7 @@ end ALU;
 architecture Behavioural of ALU is
 
   signal A_i, B_i, Z_i : STD_LOGIC_VECTOR(7 downto 0);
+  signal C_i : STD_LOGIC;
   signal sum, carry : STD_LOGIC_VECTOR(7 downto 0);
   signal logicalAnd, logicalOr, logicalXor : STD_LOGIC_VECTOR(7 downto 0);
 

@@ -241,8 +241,9 @@ begin
           when "001" => FSM_ld_c_op1 <= '1';
           when "010" => FSM_ld_d_op1 <= '1';
           when "011" => FSM_ld_e_op1 <= '1';
-          when "100" => FSM_ld_h_op1 <= '1';
-          when "101" => FSM_ld_l_op1 <= '1';
+--          when "100" => FSM_ld_h_op1 <= '1';
+--          when "101" => FSM_ld_l_op1 <= '1';
+          when others => -- use the defaults
         end case;
       end if;
 

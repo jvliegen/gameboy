@@ -1,5 +1,12 @@
 # Development journal
 
+## November 14th 2018
+
+First results with (improvised) background tiles
+![alt text](http://jo.jkl52.be/images/gameboy_journal/20181114_142044.jpg "First graphics result")
+
+
+
 ## November 13th 2018
 I spend a couple days reading (now and again) the specifications and other online resources. While doing so an attempt was made to map opcode addresses to selection signals of muxes. These muxes determine source and destination registers in the registerfile. With this effort, the instruction "LD r1,r2" should be working now. At least, that is what the simulation shows.
 
