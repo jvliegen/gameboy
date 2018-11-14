@@ -2,8 +2,12 @@
 
 ## November 14th 2018
 
-First results with (improvised) background tiles
+After converting the "ink on paper" into HDL, the first results with (improvised) background tiles are visible :)
 ![alt text](http://jo.jkl52.be/images/gameboy_journal/20181114_142044.jpg "First graphics result")
+
+So, back to the processor. Now where were we ... oooooh yes ... there was an attempt of writing an example _program_ that would only use the implemented operations. After some browsing around, RGBDS has come up on top. An evening of browsing led to a way of getting a first .gb file compiled. Investigation and a thorough study of this example is up next.
+
+... and this is where I leave it (for now) !
 
 
 
