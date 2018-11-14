@@ -3,7 +3,7 @@
 ## November 13th 2018
 I spend a couple days reading (now and again) the specifications and other online resources. While doing so an attempt was made to map opcode addresses to selection signals of muxes. These muxes determine source and destination registers in the registerfile. With this effort, the instruction "LD r1,r2" should be working now. At least, that is what the simulation shows.
 
-The next step is to 'thoroughly' test this. Therefore, it would be convenient to run a small program that only consists of the (two) implemented assembly instruction (JP and LD r1, r2). As was pointed out by the <i>brainbaker</i>, there are tools available on the Internet for this. At this point, the implementation of the processor is put to rest for now.
+The next step is to 'thoroughly' test this. Therefore, it would be convenient to run a small program that only consists of the (two) implemented assembly instruction (JP and LD r1, r2). As was pointed out by the _brainbaker_, there are tools available on the Internet for this. At this point, the implementation of the processor is put to rest for now.
 
 To see some visual progress on the project, the work focus is shifted to the graphics part. To get the ground work done, an implementation to make visualisations through VGA is done first. This part, due to earlier experience (read: having VHDL code for this) this was a short job. A 'window' with the resolution of the gameboy can be shown on a VGA monitor with any desireable colour (that is, any colour that be encoded using 12 bits, 4 bits for each R, G and B):
 ![alt text](http://jo.jkl52.be/images/gameboy_journal/20181113_122558.jpg "First graphics result")
