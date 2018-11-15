@@ -8,7 +8,7 @@ If I use this machine code, to test the hardware implementation, it could act as
 
 Sounds like a plan, doesn't it ?
 
-After half an hour or so, two additional commands are implemented: DI, which disables the interrupts; and LD SP, nn, which load a 16-bit value into the stackpointer. Apparently the next instruction is a LD A. This already was implemented and also seemed to work ... *hoozah* for me :)
+After half an hour or so, two additional commands are implemented: DI, which disables the interrupts; and LD SP, nn, which loads a 16-bit value into the stackpointer. Apparently the next instruction is an LD A. This already was implemented and also seemed to work ... *hoozah* for me :)
 
 
 ## November 14th 2018
