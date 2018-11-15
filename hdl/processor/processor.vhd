@@ -37,6 +37,11 @@ architecture Behavioural of processor is
 
   signal FSM_ld_a_op1, FSM_ld_b_op1, FSM_ld_c_op1, FSM_ld_d_op1 : STD_LOGIC;
   signal FSM_ld_e_op1, FSM_ld_f_op1, FSM_ld_h_op1, FSM_ld_l_op1 : STD_LOGIC;
+  signal FSM_ld_sp_op1 : STD_LOGIC;
+
+
+  signal interrupt_allowed, interrupt_enable, interrupt_disable : STD_LOGIC;
+
 
 begin
   
@@ -57,6 +62,7 @@ begin
     if reset_i = '1' then 
       regA <= x"00"; regB <= x"00"; regC <= x"00"; regD <= x"00";
       regE <= x"00"; regF <= x"00"; regH <= x"00"; regL <= x"00";
+      SP <= (others => '0');
     elsif rising_edge(clock_i) then
       if FSM_ld_a_op1 = '1' then regA <= regA_in; end if;
       if FSM_ld_b_op1 = '1' then regB <= regB_in; end if;
@@ -66,6 +72,7 @@ begin
       if FSM_ld_f_op1 = '1' then regF <= regF_in; end if;
       if FSM_ld_h_op1 = '1' then regH <= regH_in; end if;
       if FSM_ld_l_op1 = '1' then regL <= regL_in; end if;
+      if FSM_ld_sp_op1 = '1' then SP <= operand1 & ROM_dataout_i; end if;
     end if;
   end process; -- ending PREG
 
@@ -144,6 +151,21 @@ begin
   -------------------------------------------------------------------------------
 
 
+  PREG_STATES: process(reset_i, clock_i)
+  begin
+    if reset_i = '1' then 
+      interrupt_allowed <= '1';
+    elsif rising_edge(clock_i) then
+      if interrupt_enable = '1' then 
+        interrupt_allowed <= '1';
+      end if;
+      if interrupt_disable = '1' then 
+        interrupt_allowed <= '0';
+      end if;
+    end if;
+  end process; -- ending PREG_STATES
+
+
 
   -- FSM STATE REGISTER
   P_FSM_STATEREG: process(clock_i, reset_i)
@@ -190,7 +212,7 @@ begin
       when sFetch => 
         FSM_ld_opcode <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
       when sDecode =>
-        if opcode = x"C3" or opcode = x"3E" then 
+        if opcode = x"C3" or opcode = x"3E" or opcode = x"31" then 
           -- do another read from ROM
           FSM_ld_operand1 <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
         end if;
@@ -202,6 +224,9 @@ begin
         end if;
         if opcode = x"3E" then 
           FSM_ld_a_op1 <= '1';
+        end if;
+        if opcode = x"31" then 
+          FSM_ld_operand1 <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
         end if;
       when sDummy =>
         -- keep the defaults
@@ -217,6 +242,9 @@ begin
     FSM_ld_c_op1 <= '0';
     FSM_ld_d_op1 <= '0';
     FSM_ld_e_op1 <= '0';
+    interrupt_enable <= '0';
+    interrupt_disable <= '0';
+    FSM_ld_sp_op1 <= '0';
 
     if curState = sExecute then
 
@@ -232,6 +260,15 @@ begin
           when others => -- use the defaults
         end case;
       end if;
+
+      -- DI
+      if opcode = x"F3" then interrupt_disable <= '1'; end if;
+
+      -- EI
+      if opcode = x"FB" then interrupt_enable <= '1'; end if;
+
+      -- LD SP, nn
+      if opcode = x"31" then FSM_ld_sp_op1 <= '1'; end if;
 
     end if;
   end process;
