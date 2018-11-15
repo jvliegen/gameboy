@@ -100,20 +100,6 @@ begin
   -------------------------------------------------------------------------------
   -- PROGRAM COUNTER
   -------------------------------------------------------------------------------
-
-  -- initial opcodes from tetris:
-  -- @ x0100 - x0103: 00c3 5001 => 00 is opcode for NOP, C3 is opcode for jp nn => JUMP address 0150 (LSByte first)
-  -- @ x0104 - x0133: Nintendo logo
-  --       CE ED 66 66 CC 0D 00 0B 03 73 00 83 00 0C 00 0D
-  --       00 08 11 1F 88 89 00 0E DC CC 6E E6 DD DD D9 99
-  --       BB BB 67 63 6E 0E EC CC DD DC 99 9F BB B9 33 3E
-
-  -- @ x0150 ;
-  --       41e6 => E6 => AND #
-  --       0320 => JR NZ = jump if non zero, relativly  03
-  --       fa7e
-  --       a0c9 
-
   PREG_PC: process(reset_i, clock_i)
   begin
     if reset_i = '1' then 
