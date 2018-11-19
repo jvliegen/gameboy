@@ -37,7 +37,7 @@ architecture Behavioural of processor is
 
 
   -- FSM signals
-  type Tstates is (sIdle, sFetch, sDecode, sExecute, sDummy);
+  type Tstates is (sIdle, sFetch, sDecode, sExecute, sDummy, sPreparePC);
   signal curState, nxtState : Tstates;
   signal FSM_sel_PC_offset : STD_LOGIC;
   signal FSM_sel_PC_next : STD_LOGIC_VECTOR(1 downto 0);
@@ -47,6 +47,8 @@ architecture Behavioural of processor is
   signal FSM_ld_e_op1, FSM_ld_f_op1, FSM_ld_h_op1, FSM_ld_l_op1 : STD_LOGIC;
   signal FSM_ld_sp_op1 : STD_LOGIC;
 
+  signal FSM_execTMR_ld, FSM_execTMR_ce : STD_LOGIC;
+  signal FSM_execTMR : integer range 0 to 24;
 
   signal interrupt_allowed, interrupt_enable, interrupt_disable : STD_LOGIC;
 
@@ -191,13 +193,19 @@ begin
   begin
     if reset_i = '1' then 
       curState <= sIdle;
+      FSM_execTMR <= 0;
     elsif rising_edge(clock_i) then 
       curState <= nxtState;
+      if FSM_execTMR_ld = '1' then 
+        FSM_execTMR <= 0;
+      elsif FSM_execTMR_ce = '1' then 
+        FSM_execTMR <= FSM_execTMR - 1;
+      end if;
     end if;
   end process;
 
   -- FSM NEXT STATE FUNCTION
-  P_FSM_NSF: process(curState, opcode)
+  P_FSM_NSF: process(curState, opcode, FSM_execTMR)
   begin
     nxtState <= curState;
     case curState is
@@ -205,8 +213,11 @@ begin
 
       when sFetch => nxtState <= sDecode;
       when sDecode => nxtState <= sExecute;
-      when sExecute => nxtState <= sDummy;
-      when sDummy => nxtState <= sFetch;
+      when sExecute | sDummy => 
+        if FSM_execTMR = 0 then 
+          nxtState <= sPreparePC;
+        end if;
+      when sPreparePC => nxtState <= sFetch;
 
       when others => nxtState <= sIdle;
     end case;
@@ -227,6 +238,9 @@ begin
     FSM_ld_h_op1 <= '0';
     FSM_ld_l_op1 <= '0';
 
+    FSM_execTMR_ld <= '0';
+    FSM_execTMR_ce <= '0';
+
     case curState is
       when sFetch => 
         FSM_ld_opcode <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
@@ -236,7 +250,7 @@ begin
           -- do another read from ROM
           FSM_ld_operand1 <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
         end if;
-
+        FSM_execTMR_ld <= '1';
 
       when sExecute => 
         if opcode = x"C3" then 
@@ -249,7 +263,9 @@ begin
         if opcode = x"31" then 
           FSM_ld_operand1 <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
         end if;
+        FSM_execTMR_ce <= '1';
       when sDummy =>
+        FSM_execTMR_ce <= '1';
         -- keep the defaults
       when others =>
         -- keep the defaults
