@@ -9,8 +9,10 @@ entity processor is
     reset : in STD_LOGIC;
     clock : in STD_LOGIC;
 
-    ROM_address : out STD_LOGIC_VECTOR(15 downto 0);
-    ROM_dataout : in STD_LOGIC_VECTOR(7 downto 0)
+    bus_address : out STD_LOGIC_VECTOR(15 downto 0);
+    bus_data_in : in STD_LOGIC_VECTOR(7 downto 0);
+    bus_data_out : out STD_LOGIC_VECTOR(7 downto 0);
+    bus_we : out STD_LOGIC
   );
 end processor;
 
@@ -25,8 +27,14 @@ architecture Behavioural of processor is
   signal SP, PC, PC_nxt, PC_nxt_sum : STD_LOGIC_VECTOR(15 downto 0);
   signal IR : STD_LOGIC_VECTOR(15 downto 0);
   signal opcode, operand1 : STD_LOGIC_VECTOR(7 downto 0);
-  signal ROM_dataout_i : STD_LOGIC_VECTOR(7 downto 0);
   signal RCA_PC_RO : STD_LOGIC_VECTOR(15 downto 0);
+
+  -- bus interface
+  signal bus_data_in_i : STD_LOGIC_VECTOR(7 downto 0);
+  signal bus_data_out_i : STD_LOGIC_VECTOR(7 downto 0);
+  signal bus_address_i : STD_LOGIC_VECTOR(15 downto 0);
+  signal bus_we_i : STD_LOGIC;
+
 
   -- FSM signals
   type Tstates is (sIdle, sFetch, sDecode, sExecute, sDummy);
@@ -43,6 +51,11 @@ architecture Behavioural of processor is
   signal interrupt_allowed, interrupt_enable, interrupt_disable : STD_LOGIC;
 
 
+  type Topcode is (NOP, LD, ADD, ADC, SUB, SBC, Aen, Axf, Aof, CMP, DI, EI, JP, LDAhash, LDSPn, LDHnA, unknown);
+  signal opcode_s : Topcode;
+
+
+
 begin
   
   -------------------------------------------------------------------------------
@@ -51,8 +64,14 @@ begin
   reset_i <= reset;
   clock_i <= clock;
 
-  ROM_dataout_i <= ROM_dataout;
-  ROM_address <= PC;
+  bus_data_in_i <= bus_data_in;
+  bus_address <= PC;
+  bus_data_out <= bus_data_out_i;
+  bus_address <= bus_address_i;
+  bus_we <= bus_we_i;
+
+  bus_address_i <= PC;
+  bus_we_i <= '0';
 
   -------------------------------------------------------------------------------
   -- REGISTERFILE
@@ -72,7 +91,7 @@ begin
       if FSM_ld_f_op1 = '1' then regF <= regF_in; end if;
       if FSM_ld_h_op1 = '1' then regH <= regH_in; end if;
       if FSM_ld_l_op1 = '1' then regL <= regL_in; end if;
-      if FSM_ld_sp_op1 = '1' then SP <= operand1 & ROM_dataout_i; end if;
+      if FSM_ld_sp_op1 = '1' then SP <= operand1 & bus_data_in_i; end if;
     end if;
   end process; -- ending PREG
 
@@ -85,6 +104,7 @@ begin
   regH_in <= operand1;
   regL_in <= operand1;
 
+  bus_data_out_i <= regA; -- maybe this could be tapped from the mux that drives ALU-X
 
   -------------------------------------------------------------------------------
   -- INSTRUCTION REGISTER
@@ -96,10 +116,10 @@ begin
       operand1 <= x"00";
     elsif rising_edge(clock_i) then 
       if FSM_ld_opcode = '1' then 
-        opcode <= ROM_dataout_i;
+        opcode <= bus_data_in_i;
       end if;
       if FSM_ld_operand1 = '1' then 
-        operand1 <= ROM_dataout_i;
+        operand1 <= bus_data_in_i;
       end if;
     end if;
   end process;
@@ -116,11 +136,11 @@ begin
     end if;
   end process;
 
-  PMUX_PC: process(FSM_sel_PC_next, opcode, ROM_dataout_i, PC_nxt_sum, PC, regH, regL)
+  PMUX_PC: process(FSM_sel_PC_next, opcode, bus_data_in_i, PC_nxt_sum, PC, regH, regL)
   begin
     case FSM_sel_PC_next is
       when "01" =>
-        PC_nxt <= ROM_dataout_i & operand1;   -- absolute jump
+        PC_nxt <= bus_data_in_i & operand1;   -- absolute jump
       when "10" =>
         PC_nxt <= regH & regL; -- JUMP HL
       when "11" =>
@@ -146,10 +166,10 @@ begin
     s => PC_nxt_sum,
     co => open );
 
+
   -------------------------------------------------------------------------------
   -- CONTROL PATH
   -------------------------------------------------------------------------------
-
 
   PREG_STATES: process(reset_i, clock_i)
   begin
@@ -158,8 +178,7 @@ begin
     elsif rising_edge(clock_i) then
       if interrupt_enable = '1' then 
         interrupt_allowed <= '1';
-      end if;
-      if interrupt_disable = '1' then 
+      elsif interrupt_disable = '1' then 
         interrupt_allowed <= '0';
       end if;
     end if;
@@ -211,8 +230,9 @@ begin
     case curState is
       when sFetch => 
         FSM_ld_opcode <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
+
       when sDecode =>
-        if opcode = x"C3" or opcode = x"3E" or opcode = x"31" then 
+        if opcode = x"C3" or opcode = x"3E" or opcode = x"31" or opcode = x"3D" then 
           -- do another read from ROM
           FSM_ld_operand1 <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
         end if;
@@ -223,7 +243,8 @@ begin
           FSM_sel_PC_next <= "01"; -- PC will be set by opcode
         end if;
         if opcode = x"3E" then 
-          FSM_ld_a_op1 <= '1';
+          -- FSM_ld_a_op1 <= '1';
+          FSM_sel_PC_next <= "00"; -- PC will remain untouched
         end if;
         if opcode = x"31" then 
           FSM_ld_operand1 <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
@@ -272,5 +293,37 @@ begin
 
     end if;
   end process;
+
+  -- this is only for simuation
+  -- it translates the opcode to a mnemonic
+  -- is (NOP, LD, ADD, ADC, SUB, SBC, Aen, Axf, Aof, CMP, DI, EI, JP, LDAhash, LDSPn, LDHnA )
+  process(opcode)
+  begin
+    if opcode = x"00" then opcode_s <= NOP;
+    elsif opcode(7 downto 6) = "01" then opcode_s <= LD;
+    elsif opcode(7 downto 6) = "10" then
+      -- alu
+      case opcode(5 downto 3) is
+        when "000" => opcode_s <= ADD;
+        when "001" => opcode_s <= ADC;
+        when "010" => opcode_s <= SUB;
+        when "011" => opcode_s <= SBC;
+        when "100" => opcode_s <= Aen;
+        when "101" => opcode_s <= Axf;
+        when "110" => opcode_s <= Aof;
+        when others => opcode_s <= CMP;
+      end case;
+    elsif opcode = x"F3" then opcode_s <= DI;
+    elsif opcode = x"FB" then opcode_s <= EI;
+    elsif opcode = x"C3" then opcode_s <= JP;
+    elsif opcode = x"3E" then opcode_s <= LDAhash;
+    elsif opcode = x"31" then opcode_s <= LDSPn;
+    elsif opcode = x"E0" then opcode_s <= LDHnA;
+    else
+      opcode_s <= unknown;
+    end if;
+  end process;
+
+  
 
 end Behavioural;

@@ -1,5 +1,10 @@
 # Development journal
 
+## November 19th 2018
+Stuck ... that is the word. The fact that here are a multiple number of cycles for an instruction is, inconvenient let's say. A _load_ takes 4 cycles, unless the left operand XOR the right operand are "110", then it is a 8 cycle operation. But, in the case of where both left and right operand are "110", it's a special command: _halt_.
+
+Redesigning the control path is required. *BRB*
+
 ## November 15th 2018
 With a _simple_ example compiled, it's studying time. 
  ... *OR* ...

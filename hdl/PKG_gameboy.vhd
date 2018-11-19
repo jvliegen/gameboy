@@ -17,8 +17,10 @@ package PKG_gameboy is
       reset : in STD_LOGIC;
       clock : in STD_LOGIC;
 
-      ROM_address : out STD_LOGIC_VECTOR(15 downto 0);
-      ROM_dataout : in STD_LOGIC_VECTOR(7 downto 0)
+      bus_address : out STD_LOGIC_VECTOR(15 downto 0);
+      bus_data_in : in STD_LOGIC_VECTOR(7 downto 0);
+      bus_data_out : out STD_LOGIC_VECTOR(7 downto 0);
+      bus_we : out STD_LOGIC
     );
   end component;
 
