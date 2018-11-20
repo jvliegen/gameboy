@@ -95,7 +95,7 @@ begin
       if FSM_ld_f_op1 = '1' then regF <= regF_in; end if;
       if FSM_ld_h_op1 = '1' then regH <= regH_in; end if;
       if FSM_ld_l_op1 = '1' then regL <= regL_in; end if;
-      if FSM_ld_sp_op1 = '1' then SP <= operand1 & bus_data_in_i; end if;
+      if FSM_ld_sp_op1 = '1' then SP <= operand2 & operand1; end if;
     end if;
   end process; -- ending PREG
 
@@ -212,7 +212,7 @@ begin
   end process;
 
   -- FSM NEXT STATE FUNCTION
-  P_FSM_NSF: process(curState, FSM_execTMR)
+  P_FSM_NSF: process(curState, FSM_execTMR, opcode)
   begin
     nxtState <= curState;
     case curState is
@@ -224,10 +224,8 @@ begin
         -- therefore, the EXECUTE cycle might need interruption 
         -- this results in the processor sitting on is ass, doing nothing
         -- simply catching some well deserverd sleep cycles :)
-        if opcode = x"c3" then
-          if FSM_execTMR = 11 then 
-            nxtState <= sDummy;
-          end if; 
+        if opcode = x"c3" then if FSM_execTMR = 12 then  nxtState <= sDummy; end if; 
+        elsif opcode = x"31" then if FSM_execTMR = 8 then  nxtState <= sDummy; end if; 
         elsif FSM_execTMR = 0 then 
           nxtState <= sPreparePC;
         end if;
@@ -279,13 +277,11 @@ begin
           FSM_ld_operand2 <= '1';
           FSM_sel_PC_next <= "01"; -- PC will be set by opcode
         end if;
-        if opcode = x"3E" then 
-          -- FSM_ld_a_op1 <= '1';
-          FSM_sel_PC_next <= "00"; -- PC will remain untouched
-        end if;
         if opcode = x"31" then 
-          FSM_ld_operand1 <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
+          FSM_ld_operand2 <= '1';
+          FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";
         end if;
+
         FSM_execTMR_ce <= '1';
 
       when sDummy =>
@@ -333,6 +329,9 @@ begin
 
     end if;
   end process;
+
+
+
 
   -- this is only for simuation
   -- it translates the opcode to a mnemonic

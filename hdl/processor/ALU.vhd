@@ -6,28 +6,23 @@ entity ALU is
   port (
     A : in STD_LOGIC_VECTOR(7 downto 0);
     B : in STD_LOGIC_VECTOR(7 downto 0);
-    C : in STD_LOGIC;
+    flags_in : in STD_LOGIC_VECTOR(3 downto 0);
     Z : out STD_LOGIC_VECTOR(7 downto 0);
-    Zfl : out STD_LOGIC;
-    Nfl : out STD_LOGIC;
-    Hfl : out STD_LOGIC;
-    Cfl : out STD_LOGIC;
-
-    operation: in STD_LOGIC_VECTOR(4 downto 0)
+    flags_out : out STD_LOGIC_VECTOR(3 downto 0);
+    operation: in STD_LOGIC_VECTOR(2 downto 0)
   );
 end ALU;
 
 architecture Behavioural of ALU is
 
-  signal A_i, B_i, Z_i : STD_LOGIC_VECTOR(7 downto 0);
+  signal A_i, B_i, B_ii, Z_i : STD_LOGIC_VECTOR(7 downto 0);
   signal C_i : STD_LOGIC;
-  signal sum, carry : STD_LOGIC_VECTOR(7 downto 0);
-  signal logicalAnd, logicalOr, logicalXor : STD_LOGIC_VECTOR(7 downto 0);
-
   signal Zfl_i, Nfl_i, Hfl_i, Cfl_i : STD_LOGIC;
-  
-  signal sumIsZero, sumIsNegative : STD_LOGIC;
-  signal logicalAndIsZero, logicalOrIsZero, logicalXorIsZero : STD_LOGIC;
+  signal Zfl_o, Nfl_o, Hfl_o, Cfl_o : STD_LOGIC;
+  signal operation_i : STD_LOGIC_VECTOR(2 downto 0);
+
+  signal sum, carry : STD_LOGIC_VECTOR(7 downto 0);
+  signal l_and, l_xor, l_or : STD_LOGIC_VECTOR(7 downto 0);
 
 begin
   
@@ -36,74 +31,81 @@ begin
   -------------------------------------------------------------------------------
   A_i <= A;
   B_i <= B;
-  C_i <= C;
+  Zfl_i <= flags_in(3);
+  Nfl_i <= flags_in(2);
+  Hfl_i <= flags_in(1);
+  Cfl_i <= flags_in(0);
+  operation_i <= operation;
+
   Z <= Z_i;
-  Zfl <= Zfl_i;
-  Nfl <= Nfl_i;
-  Hfl <= Hfl_i;
-  Cfl <= Cfl_i;
 
-
-  
+  -------------------------------------------------------------------------------
+  -- OUTPUT SELECTION
+  -------------------------------------------------------------------------------
+  PMUX: process(operation_i, l_and, l_xor, l_or, sum)
+fix this sensitivity list !
+  begin
+    B_ii <= B_i;
+    C_i <= '0';
+    case operation_i is
+      when "001"  => 
+        Z_i <= sum;
+        flags_out <= Zfl_o & '0' & Hfl_o & Cfl_o;
+        C_i <= Cfl_i;
+      when "010"  => 
+        Z_i <= sum;
+        flags_out <= Zfl_o & '1' & Hfl_o & Cfl_o;
+        B_ii <= not(B_i);
+        C_i <= '1';
+fix above with the borrow stuff
+      when "011"  => Z_i <=
+      when "100"  => Z_i <= 
+        Z_i <= l_and;
+        flags_out <= Zfl_o & '0' & '1' & '0';
+      when "101"  => Z_i <= 
+        Z_i <= l_xor;
+        flags_out <= Zfl_o & '0' & '0' & '0';
+      when "110"  => Z_i <= 
+        Z_i <= l_or;
+        flags_out <= Zfl_o & '0' & '0' & '0';
+      when "111"  => Z_i <= a_cmp;
+      when others => 
+        Z_i <= sum;
+        flags_out <= Zfl_o & '0' & Hfl_o & Cfl_o;
+        B_ii <= B_i;
+        C_i <= '0';
+    end case;
+  end process;
   
   -------------------------------------------------------------------------------
   -- Arithmetic operations
   -------------------------------------------------------------------------------
   RCA: for i in 0 to 7 generate
     LSB: if i=0 generate
-      sum(i) <= A_i(i) xor B_i(i) xor C_i;
+      sum(i) <= A_i(i) xor B_ii(i) xor C_i;
       carry(i) <= (A_i(i) and B_i(i)) or (C_i and (A_i(i) xor B_i(i)));
     end generate LSB;
 
     OTHER: if i>0 generate
-      sum(i) <= A_i(i) xor B_i(i) xor carry(i-1);
+      sum(i) <= A_i(i) xor B_ii(i) xor carry(i-1);
       carry(i) <= (A_i(i) and B_i(i)) or (carry(i-1) and (A_i(i) xor B_i(i)));
     end generate OTHER;
   end generate RCA;
-  
+
+
   -------------------------------------------------------------------------------
   -- Logical operations
   -------------------------------------------------------------------------------
-  logicalAnd <= A_i and B_i;
-  logicalOr <= A_i or B_i;
-  logicalXor <= A_i xor B_i;
+  l_and <= A_i and B_i;
+  l_xor <= A_i or B_i;
+  l_or <= A_i xor B_i;
 
   -------------------------------------------------------------------------------
   -- FLAG DETERMINATION
   -------------------------------------------------------------------------------
-  sumIsZero <= '1' when sum = x"00" else '0';
-  sumIsNegative <= '1' when sum(7) = '1' else '0';
-
-  logicalAndIsZero <= '1' when logicalAnd = x"00" else '0';
-  logicalOrIsZero <= '1' when logicalOr = x"00" else '0';
-  logicalXorIsZero <= '1' when logicalXor = x"00" else '0';
-
-
-  -------------------------------------------------------------------------------
-  -- OUTPUT MULTIPLEXER
-  -------------------------------------------------------------------------------
-  PMUX: process(operation, sumIsZero, logicalAndIsZero, logicalOrIsZero, logicalXorIsZero, sumIsNegative, sum, carry, logicalAnd, logicalOr, logicalXor)
-  begin
-    case operation is
-      when "10000" | "11000" | "10001" | "11001" =>  -- ADD, ADC
-        Z_i <= sum; Zfl_i <= sumIsZero; Nfl_i <= sumIsNegative; Hfl_i <= carry(3); Cfl_i <= carry(7);
-      
-      when "10100" | "11100" => -- AND
-        Z_i <= logicalAnd; Zfl_i <= logicalAndIsZero; Nfl_i <= '0'; Hfl_i <= '1'; Cfl_i <= '0';
-
-      when "10110" | "11110" => -- OR
-        Z_i <= logicalOr; Zfl_i <= logicalOrIsZero; Nfl_i <= '0'; Hfl_i <= '0'; Cfl_i <= '0';
-
-      when "10110" | "11110" => -- XOR
-        Z_i <= logicalXor; Zfl_i <= logicalXorIsZero; Nfl_i <= '0'; Hfl_i <= '0'; Cfl_i <= '0';
-
-
-
-      when others =>
-        Z_i <= x"00"; Zfl_i <= '0'; Nfl_i <= '0'; Hfl_i <= '0'; Cfl_i <= '0';
-    end case;
-  end process;
-
-  
+  Zfl_o <= '1' when Z_i = x"00" else '0';
+  Nfl_o <= '1' when sum(7) = '1' else '0';
+  Hfl_o <= carry(3);
+  Cfl_o <= carry(7);
 
 end Behavioural;
