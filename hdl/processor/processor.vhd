@@ -18,16 +18,8 @@ end processor;
 
 architecture Behavioural of processor is
 
+  -- clock and reset
   signal reset_i, clock_i : STD_LOGIC;
-
-  -- register file
-  signal regA, regB, regC, regD, regE, regH, regL, regF : STD_LOGIC_VECTOR(7 downto 0);
-  signal regA_in, regB_in, regC_in, regD_in, regE_in, regH_in, regL_in, regF_in : STD_LOGIC_VECTOR(7 downto 0);
-
-  signal SP, PC, PC_nxt, PC_nxt_sum : STD_LOGIC_VECTOR(15 downto 0);
-  signal IR : STD_LOGIC_VECTOR(15 downto 0);
-  signal opcode, operand1 : STD_LOGIC_VECTOR(7 downto 0);
-  signal RCA_PC_RO : STD_LOGIC_VECTOR(15 downto 0);
 
   -- bus interface
   signal bus_data_in_i : STD_LOGIC_VECTOR(7 downto 0);
@@ -35,13 +27,22 @@ architecture Behavioural of processor is
   signal bus_address_i : STD_LOGIC_VECTOR(15 downto 0);
   signal bus_we_i : STD_LOGIC;
 
+  -- register file
+  signal regA, regB, regC, regD, regE, regH, regL, regF : STD_LOGIC_VECTOR(7 downto 0);
+  signal regA_in, regB_in, regC_in, regD_in, regE_in, regH_in, regL_in, regF_in : STD_LOGIC_VECTOR(7 downto 0);
+  signal SP, PC, PC_nxt, PC_nxt_sum : STD_LOGIC_VECTOR(15 downto 0);
+  signal IR : STD_LOGIC_VECTOR(15 downto 0);
+  signal opcode, operand1, operand2 : STD_LOGIC_VECTOR(7 downto 0);
+
+
+  signal RCA_PC_RO : STD_LOGIC_VECTOR(15 downto 0);
 
   -- FSM signals
   type Tstates is (sIdle, sFetch, sDecode, sExecute, sDummy, sPreparePC);
   signal curState, nxtState : Tstates;
   signal FSM_sel_PC_offset : STD_LOGIC;
   signal FSM_sel_PC_next : STD_LOGIC_VECTOR(1 downto 0);
-  signal FSM_ld_opcode, FSM_ld_operand1 : STD_LOGIC;
+  signal FSM_ld_opcode, FSM_ld_operand1, FSM_ld_operand2 : STD_LOGIC;
 
   signal FSM_ld_a_op1, FSM_ld_b_op1, FSM_ld_c_op1, FSM_ld_d_op1 : STD_LOGIC;
   signal FSM_ld_e_op1, FSM_ld_f_op1, FSM_ld_h_op1, FSM_ld_l_op1 : STD_LOGIC;
@@ -117,12 +118,16 @@ begin
     if reset_i = '1' then 
       opcode <= x"00";
       operand1 <= x"00";
+      operand2 <= x"00";
     elsif rising_edge(clock_i) then 
       if FSM_ld_opcode = '1' then 
         opcode <= bus_data_in_i;
       end if;
       if FSM_ld_operand1 = '1' then 
         operand1 <= bus_data_in_i;
+      end if;
+      if FSM_ld_operand2 = '1' then 
+        operand2 <= bus_data_in_i;
       end if;
     end if;
   end process;
@@ -139,11 +144,11 @@ begin
     end if;
   end process;
 
-  PMUX_PC: process(FSM_sel_PC_next, opcode, bus_data_in_i, PC_nxt_sum, PC, regH, regL)
+  PMUX_PC: process(FSM_sel_PC_next, opcode, operand2, PC_nxt_sum, PC, regH, regL)
   begin
     case FSM_sel_PC_next is
       when "01" =>
-        PC_nxt <= bus_data_in_i & operand1;   -- absolute jump
+        PC_nxt <= operand2 & operand1;   -- absolute jump
       when "10" =>
         PC_nxt <= regH & regL; -- JUMP HL
       when "11" =>
@@ -169,11 +174,9 @@ begin
     s => PC_nxt_sum,
     co => open );
 
-
   -------------------------------------------------------------------------------
-  -- CONTROL PATH
+  -- INTERRUPTS
   -------------------------------------------------------------------------------
-
   PREG_STATES: process(reset_i, clock_i)
   begin
     if reset_i = '1' then 
@@ -188,6 +191,9 @@ begin
   end process; -- ending PREG_STATES
 
 
+  -------------------------------------------------------------------------------
+  -- CONTROL PATH
+  -------------------------------------------------------------------------------
 
   -- FSM STATE REGISTER
   P_FSM_STATEREG: process(clock_i, reset_i)
@@ -206,20 +212,29 @@ begin
   end process;
 
   -- FSM NEXT STATE FUNCTION
-  P_FSM_NSF: process(curState, opcode, FSM_execTMR)
+  P_FSM_NSF: process(curState, FSM_execTMR)
   begin
     nxtState <= curState;
     case curState is
       when sIdle => nxtState <= sFetch;
-
       when sFetch => nxtState <= sDecode;
       when sDecode => nxtState <= sExecute;
-      when sExecute | sDummy => 
-        if FSM_execTMR = 0 then 
+      when sExecute => 
+        -- some operations are done quicker in this implementation than on the original hardware
+        -- therefore, the EXECUTE cycle might need interruption 
+        -- this results in the processor sitting on is ass, doing nothing
+        -- simply catching some well deserverd sleep cycles :)
+        if opcode = x"c3" then
+          if FSM_execTMR = 11 then 
+            nxtState <= sDummy;
+          end if; 
+        elsif FSM_execTMR = 0 then 
           nxtState <= sPreparePC;
         end if;
-      when sPreparePC => nxtState <= sFetch;
-
+      when sDummy => 
+        if FSM_execTMR = 0 then 
+          nxtState <= sPreparePC;
+        end if;      when sPreparePC => nxtState <= sFetch;
       when others => nxtState <= sIdle;
     end case;
   end process;
@@ -230,6 +245,7 @@ begin
     -- the defaults
     FSM_ld_opcode <= '0'; -- don't sample the incoming byte from ROM into opcode
     FSM_ld_operand1 <= '0'; -- don't sample the incoming byte from ROM into operand1
+    FSM_ld_operand2 <= '0'; -- don't sample the incoming byte from ROM into operand1
     FSM_sel_PC_offset <= '1'; -- RCA_PC adds x0001
     FSM_sel_PC_next <= "00"; -- 00: PC will not be updated;  11: PC will be loaded with result of RCA_PC
 
@@ -244,17 +260,23 @@ begin
 
     case curState is
       when sFetch => 
-        FSM_ld_opcode <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
+        -- 1) load the opcode of the next instruction
+        FSM_ld_opcode <= '1'; 
+        -- 2) adjust the PC to point to the next instruction
+        FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";
 
       when sDecode =>
-        if opcode = x"C3" or opcode = x"3E" or opcode = x"31" or opcode = x"3D" then 
-          -- do another read from ROM
-          FSM_ld_operand1 <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
-        end if;
+        -- 1) determine the cycle length according to the opcode
         FSM_execTMR_ld <= '1';
+        -- 2) if this instruction requires an argument, load it and increment the PC
+        if opcode = x"C3" or opcode = x"3E" or opcode = x"31" or opcode = x"3D" then 
+          FSM_ld_operand1 <= '1';
+          FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";
+        end if;
 
       when sExecute => 
         if opcode = x"C3" then 
+          FSM_ld_operand2 <= '1';
           FSM_sel_PC_next <= "01"; -- PC will be set by opcode
         end if;
         if opcode = x"3E" then 
@@ -265,6 +287,7 @@ begin
           FSM_ld_operand1 <= '1'; FSM_sel_PC_offset <= '1';   FSM_sel_PC_next <= "11";  -- default PC increment
         end if;
         FSM_execTMR_ce <= '1';
+
       when sDummy =>
         FSM_execTMR_ce <= '1';
         -- keep the defaults
@@ -341,6 +364,24 @@ begin
     end if;
   end process;
 
+  -- not all instructions have the same length, this look-up table maps the opcde to a certain cycle-length
+  -- BEWARE: some instructions have 'variable' run lenght. This is so a.o. for conditional jumps.
+  --   20  JR NZ,r8  2   12/8
+  --   28  JR Z,r8 2     12/8
+  --   30  JR NC,r8  2   12/8
+  --   38  JR C,r8 2     12/8
+  --   C2  JP NZ,a16 3   16/12
+  --   CA  JP Z,a16  3   16/12
+  --   D2  JP NC,a16 3   16/12
+  --   DA  JP C,a16  3   16/12
+  --   C0  RET NZ  1     20/8
+  --   C8  RET Z 1       20/8
+  --   D0  RET NC  1     20/8
+  --   D8  RET C 1       20/8
+  --   C4  CALL NZ,a16 3 24/12
+  --   CC  CALL Z,a16  3 24/12
+  --   D4  CALL NC,a16 3 24/12
+  --   DC  CALL C,a16  3 24/12
   PMUX_OPCODELENGTH: process(opcode)
   begin
     case (opcode) is
