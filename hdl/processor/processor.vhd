@@ -49,6 +49,7 @@ architecture Behavioural of processor is
 
   signal FSM_execTMR_ld, FSM_execTMR_ce : STD_LOGIC;
   signal FSM_execTMR : integer range 0 to 24;
+  signal FSM_execTMR_length : integer range 0 to 6;
 
   signal interrupt_allowed, interrupt_enable, interrupt_disable : STD_LOGIC;
 
@@ -197,7 +198,7 @@ begin
     elsif rising_edge(clock_i) then 
       curState <= nxtState;
       if FSM_execTMR_ld = '1' then 
-        FSM_execTMR <= 0;
+        FSM_execTMR <= (FSM_execTMR_length-1)*4;
       elsif FSM_execTMR_ce = '1' then 
         FSM_execTMR <= FSM_execTMR - 1;
       end if;
@@ -340,6 +341,22 @@ begin
     end if;
   end process;
 
-  
+  PMUX_OPCODELENGTH: process(opcode)
+  begin
+    case (opcode) is
+      when x"CD" => FSM_execTMR_length <= 6;
+      when x"20" => FSM_execTMR_length <= 5;
+      when x"C3" | x"C5" | x"C7" | x"C9" | x"CF" | x"D5" | x"D7" | x"D9" | x"DF" | x"E5" | x"E7" | x"E8" | x"EA" | x"EF" | x"F5" | x"F7" | x"FA" | x"FF" =>
+        FSM_execTMR_length <= 4;
+      when x"01" | x"11" | x"18" | x"21" | x"31" | x"34" | x"35" | x"36" | x"C1" | x"D1" | x"E0" | x"E1" | x"F0" | x"F1" | x"F8" => 
+        FSM_execTMR_length <= 3;
+      when x"02" | x"03" | x"06" | x"09" | x"0A" | x"0B" | x"0E" | x"12" | x"13" | x"16" | x"19" | x"1A" | x"1B" | x"1E" | x"22" | x"23" | 
+          x"26" | x"29" | x"2A" | x"2B" | x"2E" | x"32" | x"33" | x"39" | x"3A" | x"3B" | x"3E" | x"46" | x"4E" | x"56" | x"5E" | x"66" | 
+          x"6E" | x"70" | x"71" | x"72" | x"73" | x"74" | x"75" | x"77" | x"7E" | x"86" | x"8E" | x"96" | x"9E" | x"A6" | x"AE" | x"B6" | 
+          x"BE" | x"C6" | x"CE" | x"D6" | x"DE" | x"E2" | x"E6" | x"EE" | x"F2" | x"F6" | x"F9" | x"FE" =>
+        FSM_execTMR_length <= 2;
+      when others => FSM_execTMR_length <= 1;
+    end case;
+  end process; --PMUX_OPCODELENGTH
 
 end Behavioural;
