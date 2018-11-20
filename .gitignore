@@ -2,6 +2,8 @@ vivado*
 doc/*images*/*
 doc/*Specific*
 
+rgbds/*
+
 asm/*.o
 asm/*.gb
 
