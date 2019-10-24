@@ -1,18 +1,23 @@
 # Development journal
 
+## October 24th 2019
+After a year ... WTH **ONE YEAR** has past ... I took it up again. Before starting to write code, I've decided to analyse the opcodes first. The control path was misaligned due to 1 machine cycle is 4 clock cycles. Maybe thinking before typing (like I preach to my students) DOES help :-) Who would have guessed ;-)
+
+
 ## November 20th 2018
 The Fetch-Decode-Execute cycle in the control path of the processor has been adapted. Now, the execute state can live longer than a single clock cycle. The exact length is determined by the opcode.
 
 Now, the trick now is to drive the correct outputs in the correct cycle of Execute.
 
 
-While _studying the blueprints_ (LOL: Command and Conquer) a detailed understanding of the ALU is achieved. While pondering over the controlpath, the ALU is being implemented.
+While _studying blueprints_ (LOL: Command and Conquer) a detailed understanding of the ALU is achieved. While pondering over the controlpath, the ALU is being implemented.
 
 
 ## November 19th 2018
-Stuck ... that is the word. The fact that here are a multiple number of cycles for an instruction is, inconvenient let's say. A _load_ takes 4 cycles, unless the left operand XOR the right operand are "110", then it is a 8 cycle operation. But, in the case of where both left and right operand are "110", it's a special command: _halt_.
+Stuck ... that is the word. The fact that here are a multiple number of cycles for an instruction is, inconvenient let's say. A _load_ takes 4 cycles, unless the left operand XOR the right operand are "110", then it is a 8 cycle operation. But, in the case of where both left and right operand are "110", it's a special command: _halt_. (Hammerzeit !!)
 
 Redesigning the control path is required. *BRB*
+
 
 ## November 15th 2018
 With a _simple_ example ROM compiled, it's studying time. 
