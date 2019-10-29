@@ -31,7 +31,6 @@ package PKG_gameboy is
       wea : in STD_LOGIC_VECTOR ( 0 to 0 );
       addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
       dina : in STD_LOGIC_VECTOR ( 7 downto 0 );
-      douta : out STD_LOGIC_VECTOR ( 7 downto 0 );
       clkb : in STD_LOGIC;
       addrb : in STD_LOGIC_VECTOR ( 15 downto 0 );
       doutb : out STD_LOGIC_VECTOR ( 7 downto 0 )

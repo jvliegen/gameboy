@@ -20,7 +20,7 @@ architecture Behavioural of gameboy_v1_tb is
   signal reset, clock : STD_LOGIC;
   signal ROM_address : STD_LOGIC_VECTOR(15 downto 0);
   signal ROM_data_in : STD_LOGIC_VECTOR(7 downto 0);
-  signal ROM_we : STD_LOGIC
+  signal ROM_we : STD_LOGIC;
 
   constant clock_period : time := 10 ns;
 

@@ -59,7 +59,6 @@ begin
     wea => ROM_we_v,
     addra => ROM_address_i,
     dina => ROM_data_in_i,
-    douta => open,
     clkb => clock_i,
     addrb => PROC_bus_address,
     doutb => PROC_bus_data_in);

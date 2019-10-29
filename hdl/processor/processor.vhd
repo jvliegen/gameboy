@@ -79,7 +79,7 @@ architecture Behavioural of processor is
 
   signal FSM_loadIR, FSM_loadARG1, FSM_loadARG2 : STD_LOGIC;
 
-  signal CP_HELPER_a : STD_LOGIC_VECTOR(32 downto 0);
+  signal CP_HELPER_a : STD_LOGIC_VECTOR(31 downto 0);
   signal CP_HELPER : STD_LOGIC_VECTOR(63 downto 0);
   alias CPH_loadIR : STD_LOGIC is CP_HELPER(63);
   alias CPH_loadARG1 : STD_LOGIC is CP_HELPER(62);

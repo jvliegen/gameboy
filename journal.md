@@ -1,5 +1,10 @@
 # Development journal
 
+## October 29th 2019
+I've taken another approach. Because of the irregular number of clock cycles I made a dumb FSM that passes through sets of 4 states. Depending on the IR it is decided if another set is required or not.
+These parameters (eg. doing another round of 4), are fixed and can be (lazy as I am) store in RAM. With the IR as address, and a 64-bit output, we already have quite a number of FSM signals housed.
+Let's see if this is approach passes simulation. (a moment later) Yes, it simulates. Next up. correct behaviour of the PC.
+
 ## October 24th 2019
 After a year ... WTH **ONE YEAR** has past ... I took it up again. Before starting to write code, I've decided to analyse the opcodes first. The control path was misaligned due to 1 machine cycle is 4 clock cycles. Maybe thinking before typing (like I preach to my students) DOES help :-) Who would have guessed ;-)
 
