@@ -8,3 +8,4 @@ asm/*.o
 asm/*.gb
 
 gameboy.sublime*
+/hdl/processor/controlpath.coe
