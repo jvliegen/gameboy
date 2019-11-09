@@ -179,16 +179,15 @@ begin
     end if;
   end process;
 
-  PMUX_PC: process(CPH_PCnext, PC_incremented)--, opcode, operand2, PC_nxt_sum)--, PC), regH, regL)
+  PMUX_PC: process(CPH_PCnext, PC_incremented, operand1, operand2)--, opcode, operand2, PC_nxt_sum)--, PC), regH, regL)
   begin
     case CPH_PCnext is
---      when "001" =>
+      when "001" =>     PC_nxt <= operand2 & operand1;
       ----when "10" =>
       ----  PC_nxt <= regH & regL; -- JUMP HL
       --when "11" =>
       --  PC_nxt <= PC_nxt_sum;
-      when others => 
-        PC_nxt <= PC_incremented;
+      when others =>    PC_nxt <= PC_incremented;
     end case;
   end process;
 
@@ -273,7 +272,12 @@ begin
   FSM_loadIR <= CPH_loadIR when curState = MC0_CC0 else '0';
   FSM_loadARG1 <= CPH_loadARG1 when curState = MC1_CC0 else '0';
   FSM_loadARG2 <= CPH_loadARG2 when curState = MC2_CC0 else '0';
-  FSM_loadPC <= '1' when curState = MC0_CC0 or curState = MC1_CC0 else '0';
+
+  FSM_loadPC <= '1' when 
+        curState = MC0_CC0 
+        or curState = MC1_CC0 
+        or curState = MC2_CC3
+        else '0';
 
   -- CP_HELPER
   -- In stead of hardcoding a lot of parameters, I'm using a BRAM

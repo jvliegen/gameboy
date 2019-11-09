@@ -1,5 +1,8 @@
 # Development journal
 
+## November 9th 2019
+When I left things, I expected to work on the PC. This I'm doing today. As a guide line, I'm using a ROM of an existing game (TETRIS) to guide me. The first operation after **NOP(0x00)** is a **JUMP(0xC3)**. Let's get to it !!
+
 ## October 29th 2019
 I've taken another approach. Because of the irregular number of clock cycles I made a dumb FSM that passes through sets of 4 states. Depending on the IR it is decided if another set is required or not.
 These parameters (eg. doing another round of 4), are fixed and can be (lazy as I am) store in RAM. With the IR as address, and a 64-bit output, we already have quite a number of FSM signals housed.
