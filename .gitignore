@@ -9,3 +9,4 @@ asm/*.gb
 
 gameboy.sublime*
 /hdl/processor/controlpath.coe
+/hdl/processor/processor_bkp.vhd
