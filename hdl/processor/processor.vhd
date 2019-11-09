@@ -35,6 +35,9 @@ architecture Behavioural of processor is
   signal IR : STD_LOGIC_VECTOR(7 downto 0);
   signal operand1, operand2 : STD_LOGIC_VECTOR(7 downto 0);
   signal PC, PC_nxt, PC_nxt_sum, PC_incremented : STD_LOGIC_VECTOR(15 downto 0);
+
+  signal CPH_PC_OFFSET : STD_LOGIC_VECTOR(1 downto 0);
+  signal PC_offset : integer range 0 to 65535;
   --signal opcode, operand1, operand2 : STD_LOGIC_VECTOR(7 downto 0);
 
 
@@ -77,7 +80,7 @@ architecture Behavioural of processor is
       sHalt);
   signal curState, nxtState : Tstate;
 
-  signal FSM_loadIR, FSM_loadARG1, FSM_loadARG2 : STD_LOGIC;
+  signal FSM_loadIR, FSM_loadARG1, FSM_loadARG2, FSM_loadPC : STD_LOGIC;
 
   signal CP_HELPER_a : STD_LOGIC_VECTOR(31 downto 0);
   signal CP_HELPER : STD_LOGIC_VECTOR(63 downto 0);
@@ -85,7 +88,9 @@ architecture Behavioural of processor is
   alias CPH_loadARG1 : STD_LOGIC is CP_HELPER(62);
   alias CPH_loadARG2 : STD_LOGIC is CP_HELPER(61);
   alias CPH_MClimit : STD_LOGIC_VECTOR(6 downto 0) is CP_HELPER(60 downto 54);
-  alias CPH_PCnext : STD_LOGIC_VECTOR(2 downto 0) is CP_HELPER(53 downto 51);
+  --53 => 45 flags
+  alias CPH_PCnext : STD_LOGIC_VECTOR(2 downto 0) is CP_HELPER(45 downto 43);
+  alias CPH_PCnext_incr_offset : STD_LOGIC_VECTOR(1 downto 0) is CP_HELPER(42 downto 41);
 
 
 begin
@@ -168,15 +173,16 @@ begin
     if reset_i = '1' then 
       PC <= C_programcounter_reset; -- PC is inited on x"0100"
     elsif rising_edge(clock_i) then 
-      PC <= PC_nxt;
+      if FSM_loadPC = '1' then
+        PC <= PC_nxt;
+      end if;
     end if;
   end process;
 
   PMUX_PC: process(CPH_PCnext, PC_incremented)--, opcode, operand2, PC_nxt_sum)--, PC), regH, regL)
   begin
     case CPH_PCnext is
-      --when "01" =>
-      --  PC_nxt <= operand2 & operand1;   -- absolute jump
+--      when "001" =>
       ----when "10" =>
       ----  PC_nxt <= regH & regL; -- JUMP HL
       --when "11" =>
@@ -186,7 +192,16 @@ begin
     end case;
   end process;
 
-  PC_incremented <= std_logic_vector(to_unsigned(  to_integer(unsigned(PC)) + 1, PC'length));
+  PC_incremented <= std_logic_vector(to_unsigned(  to_integer(unsigned(PC)) + PC_offset, PC'length));
+  
+  PMUX_PC_OFFSET: process(PC, CPH_PCnext_incr_offset)
+  begin
+    case CPH_PCnext_incr_offset is
+      when "01" => PC_offset <= 1;
+      when others => PC_offset <= 0;
+    end case;
+  end process; --PMUX_PC_OFFSET
+
 
 
   -------------------------------------------------------------------------------
@@ -258,6 +273,7 @@ begin
   FSM_loadIR <= CPH_loadIR when curState = MC0_CC0 else '0';
   FSM_loadARG1 <= CPH_loadARG1 when curState = MC1_CC0 else '0';
   FSM_loadARG2 <= CPH_loadARG2 when curState = MC2_CC0 else '0';
+  FSM_loadPC <= '1' when curState = MC0_CC0 or curState = MC1_CC0 else '0';
 
   -- CP_HELPER
   -- In stead of hardcoding a lot of parameters, I'm using a BRAM
