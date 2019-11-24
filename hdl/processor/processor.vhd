@@ -104,8 +104,20 @@ architecture Behavioural of processor is
 
   signal FSM_PCnext : STD_LOGIC;
 
+  type opcode_names is (NOP, JMP, ADC_n, UNDEFINED);
+  signal opcode_name : opcode_names;
+
 begin
   
+  with to_integer(unsigned(IR)) select
+    opcode_name <= NOP when 0,
+                   JMP when 195,
+                   ADC_n when 206,
+
+
+
+                   UNDEFINED when others;
+
   -------------------------------------------------------------------------------
   -- (DE-)LOCALISING IN/OUTPUTS
   -------------------------------------------------------------------------------
@@ -206,7 +218,7 @@ begin
         ----  PC_nxt <= regH & regL; -- JUMP HL
         --when "11" =>
         --  PC_nxt <= PC_nxt_sum;
-        when others =>    PC_nxt <= PC_incremented;
+        when others => PC_nxt <= PC_incremented;
       end case;
     end if;
   end process;
@@ -296,7 +308,11 @@ begin
   FSM_loadPC <= '1' when 
         curState = MC0_CC0 
         or curState = MC1_CC0 
-        or curState = MC2_CC1
+        or curState = MC2_CC0 or (curState = MC2_CC3 and CPH_MClimit(2) = '1')
+        or curState = MC3_CC0
+        or curState = MC4_CC0
+        or curState = MC5_CC0
+        or curState = MC6_CC0
         else '0';
 
   -- the instuction might have an influence on the program counter
@@ -304,7 +320,9 @@ begin
   -- therefor the default operation is : increment PC. Until the FSM
   -- decides it's the instruction's influence that is allowed
   -- This signal (when '1') overrules to increment PC
-  FSM_PCnext <= '1';
+  FSM_PCnext <= '0' when  
+        (curState = MC2_CC3) and (CPH_MClimit(2) = '1')
+        else '1';
 
 
   -- CP_HELPER
