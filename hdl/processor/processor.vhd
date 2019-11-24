@@ -10,6 +10,11 @@ entity processor is
     reset : in STD_LOGIC;
     clock : in STD_LOGIC;
 
+    CPH_en : in STD_LOGIC;
+    CPH_data_in : in STD_LOGIC_VECTOR(31 downto 0);
+    CPH_address : in STD_LOGIC_VECTOR(7 downto 0);
+    CPH_we : in STD_LOGIC_VECTOR(0 downto 0);
+
     bus_address : out STD_LOGIC_VECTOR(15 downto 0);
     bus_data_in : in STD_LOGIC_VECTOR(7 downto 0);
     bus_data_out : out STD_LOGIC_VECTOR(7 downto 0);
@@ -21,6 +26,12 @@ architecture Behavioural of processor is
 
   -- clock and reset
   signal reset_i, clock_i : STD_LOGIC;
+ 
+  --CPH memory interface
+  signal CPH_en_i : STD_LOGIC;
+  signal CPH_address_i : STD_LOGIC_VECTOR(7 downto 0);
+  signal CPH_data_in_i : STD_LOGIC_VECTOR(31 downto 0);
+  signal CPH_we_i : STD_LOGIC_VECTOR(0 downto 0);
 
   -- bus interface
   signal bus_data_in_i : STD_LOGIC_VECTOR(7 downto 0);
@@ -88,10 +99,10 @@ architecture Behavioural of processor is
   alias CPH_loadARG1 : STD_LOGIC is CP_HELPER(62);
   alias CPH_loadARG2 : STD_LOGIC is CP_HELPER(61);
   alias CPH_MClimit : STD_LOGIC_VECTOR(6 downto 0) is CP_HELPER(60 downto 54);
-  --53 => 45 flags
   alias CPH_PCnext : STD_LOGIC_VECTOR(2 downto 0) is CP_HELPER(45 downto 43);
   alias CPH_PCnext_incr_offset : STD_LOGIC_VECTOR(1 downto 0) is CP_HELPER(42 downto 41);
 
+  signal FSM_PCnext : STD_LOGIC;
 
 begin
   
@@ -100,6 +111,11 @@ begin
   -------------------------------------------------------------------------------
   reset_i <= reset;
   clock_i <= clock;
+
+  CPH_en_i <= CPH_en;
+  CPH_address_i <= CPH_address;
+  CPH_data_in_i <= CPH_data_in;
+  CPH_we_i <= CPH_we;
 
   bus_data_in_i <= bus_data_in;
   bus_address <= PC;
@@ -179,16 +195,20 @@ begin
     end if;
   end process;
 
-  PMUX_PC: process(CPH_PCnext, PC_incremented, operand1, operand2)--, opcode, operand2, PC_nxt_sum)--, PC), regH, regL)
+  PMUX_PC: process(FSM_PCnext, CPH_PCnext, PC_incremented, operand1, operand2)--, opcode, operand2, PC_nxt_sum)--, PC), regH, regL)
   begin
-    case CPH_PCnext is
-      when "001" =>     PC_nxt <= operand2 & operand1;
-      ----when "10" =>
-      ----  PC_nxt <= regH & regL; -- JUMP HL
-      --when "11" =>
-      --  PC_nxt <= PC_nxt_sum;
-      when others =>    PC_nxt <= PC_incremented;
-    end case;
+    if FSM_PCnext = '1' then 
+      PC_nxt <= PC_incremented;
+    else
+      case CPH_PCnext is
+        when "001" =>     PC_nxt <= operand2 & operand1;
+        ----when "10" =>
+        ----  PC_nxt <= regH & regL; -- JUMP HL
+        --when "11" =>
+        --  PC_nxt <= PC_nxt_sum;
+        when others =>    PC_nxt <= PC_incremented;
+      end case;
+    end if;
   end process;
 
   PC_incremented <= std_logic_vector(to_unsigned(  to_integer(unsigned(PC)) + PC_offset, PC'length));
@@ -276,8 +296,16 @@ begin
   FSM_loadPC <= '1' when 
         curState = MC0_CC0 
         or curState = MC1_CC0 
-        or curState = MC2_CC3
+        or curState = MC2_CC1
         else '0';
+
+  -- the instuction might have an influence on the program counter
+  -- those instructions, however, might also need multiple operands
+  -- therefor the default operation is : increment PC. Until the FSM
+  -- decides it's the instruction's influence that is allowed
+  -- This signal (when '1') overrules to increment PC
+  FSM_PCnext <= '1';
+
 
   -- CP_HELPER
   -- In stead of hardcoding a lot of parameters, I'm using a BRAM
@@ -298,9 +326,14 @@ begin
   -- FSM Helper
   FSM_Helper_inst00: component blk_mem_gen_1 port map(
     clka => clock_i,
-    addra => IR,
-    douta => CP_HELPER_a);
-    
+    ena => CPH_en_i,
+    addra => CPH_address_i,
+    dina => CPH_data_in_i,
+    wea => CPH_we_i,
+    clkb => clock_i,
+    addrb => IR,
+    doutb => CP_HELPER_a);
+
   CP_HELPER <= CP_HELPER_a & x"00000000";
 
 end Behavioural;

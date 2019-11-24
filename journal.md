@@ -1,5 +1,11 @@
 # Development journal
 
+## November 24th 2019
+Wow, this took me some time. With routing everything out, things broke down. Long story short, hread() and read() are not the same !! Duhu !! Nonetheless, that's only a single character over which I've read maybe 100 times. :@
+
+## November 11th 2019
+Apparently I'm a bit confused with this program counter things. I've routed the CPH to the outside so I can more easily update it.
+
 ## November 9th 2019
 When I left things, I expected to work on the PC. This I'm doing today. As a guide line, I'm using a ROM of an existing game (TETRIS) to guide me. The first operation after **NOP(0x00)** is a **JUMP(0xC3)**. Let's get to it !!
 

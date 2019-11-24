@@ -18,6 +18,11 @@ package PKG_gameboy is
       reset : in STD_LOGIC;
       clock : in STD_LOGIC;
 
+      CPH_en : in STD_LOGIC;
+      CPH_data_in : in STD_LOGIC_VECTOR(31 downto 0);
+      CPH_address : in STD_LOGIC_VECTOR(7 downto 0);
+      CPH_we : in STD_LOGIC_VECTOR(0 downto 0);
+
       bus_address : out STD_LOGIC_VECTOR(15 downto 0);
       bus_data_in : in STD_LOGIC_VECTOR(7 downto 0);
       bus_data_out : out STD_LOGIC_VECTOR(7 downto 0);
@@ -28,6 +33,7 @@ package PKG_gameboy is
   component blk_mem_gen_0 is
     Port ( 
       clka : in STD_LOGIC;
+      ena : in STD_LOGIC;
       wea : in STD_LOGIC_VECTOR ( 0 to 0 );
       addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
       dina : in STD_LOGIC_VECTOR ( 7 downto 0 );
@@ -39,9 +45,14 @@ package PKG_gameboy is
 
   component blk_mem_gen_1 IS
     port (
-      clka : IN STD_LOGIC;
-      addra : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-      douta : OUT STD_LOGIC_VECTOR(31 DOWNTO 0)
+      clka : in STD_LOGIC;
+      ena : in STD_LOGIC;
+      wea : in STD_LOGIC_VECTOR (0 to 0 );
+      addra : in STD_LOGIC_VECTOR (7 downto 0 );
+      dina : in STD_LOGIC_VECTOR (31 downto 0 );
+      clkb : IN STD_LOGIC;
+      addrb : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+      doutb : OUT STD_LOGIC_VECTOR(31 DOWNTO 0)
     );
   end component;
 
