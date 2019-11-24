@@ -39,7 +39,9 @@ architecture Behavioural of processor is
   signal bus_address_i : STD_LOGIC_VECTOR(15 downto 0);
   signal bus_we_i : STD_LOGIC;
 
-  ---- register file
+  -- register file
+  signal regA, regF : STD_LOGIC_VECTOR(7 downto 0);
+  signal regA_in, regF_in : STD_LOGIC_VECTOR(7 downto 0);
   --signal regA, regB, regC, regD, regE, regH, regL, regF : STD_LOGIC_VECTOR(7 downto 0);
   --signal regA_in, regB_in, regC_in, regD_in, regE_in, regH_in, regL_in, regF_in : STD_LOGIC_VECTOR(7 downto 0);
   --signal SP, PC, PC_nxt, PC_nxt_sum : STD_LOGIC_VECTOR(15 downto 0);
@@ -47,9 +49,17 @@ architecture Behavioural of processor is
   signal operand1, operand2 : STD_LOGIC_VECTOR(7 downto 0);
   signal PC, PC_nxt, PC_nxt_sum, PC_incremented : STD_LOGIC_VECTOR(15 downto 0);
 
+  -- ALU
+  signal ALU_operation : STD_LOGIC_VECTOR(2 downto 0);
+  signal ALU_flags_in, ALU_flags_out : STD_LOGIC_VECTOR(3 downto 0);
+  signal ALU_op1, ALU_op2, ALU_out : STD_LOGIC_VECTOR(7 downto 0);
+
+
   signal CPH_PC_OFFSET : STD_LOGIC_VECTOR(1 downto 0);
   signal PC_offset : integer range 0 to 65535;
   --signal opcode, operand1, operand2 : STD_LOGIC_VECTOR(7 downto 0);
+
+
 
 
   --signal RCA_PC_RO : STD_LOGIC_VECTOR(15 downto 0);
@@ -61,6 +71,7 @@ architecture Behavioural of processor is
   --signal FSM_sel_PC_next : STD_LOGIC_VECTOR(1 downto 0);
   --signal FSM_ld_opcode, FSM_ld_operand1, FSM_ld_operand2 : STD_LOGIC;
 
+  signal FSM_ld_regA, FSM_ld_regF : STD_LOGIC;
   --signal FSM_ld_a_op1, FSM_ld_b_op1, FSM_ld_c_op1, FSM_ld_d_op1 : STD_LOGIC;
   --signal FSM_ld_e_op1, FSM_ld_f_op1, FSM_ld_h_op1, FSM_ld_l_op1 : STD_LOGIC;
   --signal FSM_ld_sp_op1 : STD_LOGIC;
@@ -72,11 +83,7 @@ architecture Behavioural of processor is
   --signal interrupt_allowed, interrupt_enable, interrupt_disable : STD_LOGIC;
 
 
-  --type Topcode is (NOP, LD, ADD, ADC, SUB, SBC, Aen, Axf, Aof, CMP, DI, EI, JP, LDAhash, LDSPn, LDHnA, unknown);
-  --signal opcode_s : Topcode;
-  --
-  --
-  --
+
   -- FSM signals
   type Tstate is (sInit, sIdle, 
       MC0_CC0, MC0_CC1, MC0_CC2, MC0_CC3, 
@@ -99,8 +106,13 @@ architecture Behavioural of processor is
   alias CPH_loadARG1 : STD_LOGIC is CP_HELPER(62);
   alias CPH_loadARG2 : STD_LOGIC is CP_HELPER(61);
   alias CPH_MClimit : STD_LOGIC_VECTOR(6 downto 0) is CP_HELPER(60 downto 54);
+  alias CPH_affectFlagZ : STD_LOGIC_VECTOR(1 downto 0) is CP_HELPER(53 downto 52);
+  alias CPH_affectFlagN : STD_LOGIC_VECTOR(1 downto 0) is CP_HELPER(51 downto 50);
+  alias CPH_affectFlagH : STD_LOGIC_VECTOR(1 downto 0) is CP_HELPER(49 downto 48);
+  alias CPH_affectFlagC : STD_LOGIC_VECTOR(1 downto 0) is CP_HELPER(47 downto 46);
   alias CPH_PCnext : STD_LOGIC_VECTOR(2 downto 0) is CP_HELPER(45 downto 43);
   alias CPH_PCnext_incr_offset : STD_LOGIC_VECTOR(1 downto 0) is CP_HELPER(42 downto 41);
+  alias CPH_affect_regA : STD_LOGIC is CP_HELPER(40);
 
   signal FSM_PCnext : STD_LOGIC;
 
@@ -113,9 +125,6 @@ begin
     opcode_name <= NOP when 0,
                    JMP when 195,
                    ADC_n when 206,
-
-
-
                    UNDEFINED when others;
 
   -------------------------------------------------------------------------------
@@ -141,14 +150,17 @@ begin
   -------------------------------------------------------------------------------
   -- REGISTERFILE
   -------------------------------------------------------------------------------
-  --PREG: process(reset_i, clock_i)
-  --begin
-  --  if reset_i = '1' then 
-  --    regA <= x"00"; regB <= x"00"; regC <= x"00"; regD <= x"00";
+  PREG: process(reset_i, clock_i)
+  begin
+    if reset_i = '1' then 
+      regA <= x"00"; 
+      regF <= x"00"; 
+  --    regB <= x"00"; regC <= x"00"; regD <= x"00";
   --    regE <= x"00"; regF <= x"00"; regH <= x"00"; regL <= x"00";
   --    SP <= (others => '0');
-  --  elsif rising_edge(clock_i) then
-  --    if FSM_ld_a_op1 = '1' then regA <= regA_in; end if;
+    elsif rising_edge(clock_i) then
+      if FSM_ld_regA = '1' then regA <= regA_in; end if;
+      if FSM_ld_regF = '1' then regF <= regF_in; end if;
   --    if FSM_ld_b_op1 = '1' then regB <= regB_in; end if;
   --    if FSM_ld_c_op1 = '1' then regC <= regC_in; end if;
   --    if FSM_ld_d_op1 = '1' then regD <= regD_in; end if;
@@ -157,15 +169,32 @@ begin
   --    if FSM_ld_h_op1 = '1' then regH <= regH_in; end if;
   --    if FSM_ld_l_op1 = '1' then regL <= regL_in; end if;
   --    if FSM_ld_sp_op1 = '1' then SP <= operand2 & operand1; end if;
-  --  end if;
-  --end process; -- ending PREG
+    end if;
+  end process; -- ending PREG
 
-  --regA_in <= operand1;
+  regA_in <= ALU_out;
   --regB_in <= operand1;
   --regC_in <= operand1;
   --regD_in <= operand1;
   --regE_in <= operand1;
-  --regF_in <= operand1;
+  -- CPH_affectFlag.(1..0)
+  --   00: set to 0
+  --   01: not affected
+  --   10: from ALU
+  --   11: set to 1
+  regF_in(7) <= ( CPH_affectFlagZ(1) and CPH_affectFlagZ(0) )
+             or ( CPH_affectFlagZ(1) and ALU_flags_out(3) )
+             or ( CPH_affectFlagZ(0) and regF(7) );
+  regF_in(6) <= ( CPH_affectFlagN(1) and CPH_affectFlagN(0) )
+             or ( CPH_affectFlagN(1) and ALU_flags_out(2) )
+             or ( CPH_affectFlagN(0) and regF(6) );
+  regF_in(5) <= ( CPH_affectFlagH(1) and CPH_affectFlagH(0) )
+             or ( CPH_affectFlagH(1) and ALU_flags_out(1) )
+             or ( CPH_affectFlagH(0) and regF(5) );
+  regF_in(4) <= ( CPH_affectFlagC(1) and CPH_affectFlagC(0) )
+             or ( CPH_affectFlagC(1) and ALU_flags_out(0) )
+             or ( CPH_affectFlagC(0) and regF(4) );
+  regF_in(3 downto 0) <= "0000";
   --regH_in <= operand1;
   --regL_in <= operand1;
 
@@ -232,6 +261,21 @@ begin
       when others => PC_offset <= 0;
     end case;
   end process; --PMUX_PC_OFFSET
+
+
+  -------------------------------------------------------------------------------
+  -- ALU
+  -------------------------------------------------------------------------------
+  ALU_inst00: component ALU port map(
+    A => ALU_op1,
+    B => ALU_op2,
+    flags_in => ALU_flags_in,
+    Z => ALU_out,
+    flags_out => ALU_flags_out,
+    operation => ALU_operation
+  );
+  
+
 
 
 
@@ -324,6 +368,16 @@ begin
         (curState = MC2_CC3) and (CPH_MClimit(2) = '1')
         else '1';
 
+
+  FSM_ld_rega <= CPH_affect_regA when 
+        (curState = MC0_CC3 and CPH_MClimit(0) = '1')
+        or (curState = MC1_CC3 and CPH_MClimit(1) = '1')
+        or (curState = MC2_CC3 and CPH_MClimit(2) = '1')
+        or (curState = MC3_CC3 and CPH_MClimit(3) = '1')
+        or (curState = MC4_CC3 and CPH_MClimit(4) = '1')
+        or (curState = MC5_CC3 and CPH_MClimit(5) = '1')
+        or (curState = MC6_CC3 and CPH_MClimit(6) = '1')
+        else '0';
 
   -- CP_HELPER
   -- In stead of hardcoding a lot of parameters, I'm using a BRAM
