@@ -3,6 +3,8 @@
 ## November 24th 2019
 Wow, this took me some time. With routing everything out, things broke down. Long story short, hread() and read() are not the same !! Duhu !! Nonetheless, that's only a single character over which I've read maybe 100 times. :@
 
+With that issue fixed, the **JUMP(0xC3)** instruction is implemented. The ROM I'm using to verify the design, has as next instruction **ADC,n(0xCE)**. I revisted the ALU and eliminated some unneeded (for now) parts. Two registers are added: **regA** and **regF**. The design is reaching simulation but verification whether it works is for the next time.
+
 ## November 11th 2019
 Apparently I'm a bit confused with this program counter things. I've routed the CPH to the outside so I can more easily update it.
 
