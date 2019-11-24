@@ -56,14 +56,14 @@ package PKG_gameboy is
     );
   end component;
 
-  component RCA is
-    generic (width : integer := 16);
+  component ALU is
     port (
-      a : in STD_LOGIC_VECTOR(width-1 downto 0);
-      b : in STD_LOGIC_VECTOR(width-1 downto 0);
-      ci : in STD_LOGIC;
-      s : out STD_LOGIC_VECTOR(width-1 downto 0);
-      co : out STD_LOGIC
+      A : in STD_LOGIC_VECTOR(7 downto 0);
+      B : in STD_LOGIC_VECTOR(7 downto 0);
+      flags_in : in STD_LOGIC_VECTOR(3 downto 0);
+      Z : out STD_LOGIC_VECTOR(7 downto 0);
+      flags_out : out STD_LOGIC_VECTOR(3 downto 0);
+      operation: in STD_LOGIC_VECTOR(2 downto 0)
     );
   end component;
 

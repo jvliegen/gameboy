@@ -1,5 +1,7 @@
-library IEEE;
+-- operations
+--  001: ADC
 
+library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
 entity ALU is
@@ -42,33 +44,32 @@ begin
   -------------------------------------------------------------------------------
   -- OUTPUT SELECTION
   -------------------------------------------------------------------------------
-  PMUX: process(operation_i, l_and, l_xor, l_or, sum)
-fix this sensitivity list !
+  PMUX: process(operation_i, B_i, sum, Zfl_o, Nfl_o, Hfl_o, Cfl_o) --, l_and, l_xor, l_or, sum)
   begin
     B_ii <= B_i;
     C_i <= '0';
     case operation_i is
-      when "001"  => 
+      when "001"  => -- ADC => N is always zero
         Z_i <= sum;
         flags_out <= Zfl_o & '0' & Hfl_o & Cfl_o;
         C_i <= Cfl_i;
-      when "010"  => 
-        Z_i <= sum;
-        flags_out <= Zfl_o & '1' & Hfl_o & Cfl_o;
-        B_ii <= not(B_i);
-        C_i <= '1';
-fix above with the borrow stuff
-      when "011"  => Z_i <=
-      when "100"  => Z_i <= 
-        Z_i <= l_and;
-        flags_out <= Zfl_o & '0' & '1' & '0';
-      when "101"  => Z_i <= 
-        Z_i <= l_xor;
-        flags_out <= Zfl_o & '0' & '0' & '0';
-      when "110"  => Z_i <= 
-        Z_i <= l_or;
-        flags_out <= Zfl_o & '0' & '0' & '0';
-      when "111"  => Z_i <= a_cmp;
+      --when "010"  => 
+      --  Z_i <= sum;
+      --  flags_out <= Zfl_o & '1' & Hfl_o & Cfl_o;
+      --  B_ii <= not(B_i);
+      --  C_i <= '1';
+--fix above with the borrow stuff
+--      when "011"  => Z_i <=
+--      when "100"  => Z_i <= 
+--        Z_i <= l_and;
+--        flags_out <= Zfl_o & '0' & '1' & '0';
+--      when "101"  => Z_i <= 
+--        Z_i <= l_xor;
+--        flags_out <= Zfl_o & '0' & '0' & '0';
+--      when "110"  => Z_i <= 
+--        Z_i <= l_or;
+--        flags_out <= Zfl_o & '0' & '0' & '0';
+--      when "111"  => Z_i <= a_cmp;
       when others => 
         Z_i <= sum;
         flags_out <= Zfl_o & '0' & Hfl_o & Cfl_o;
@@ -100,6 +101,7 @@ fix above with the borrow stuff
   l_xor <= A_i or B_i;
   l_or <= A_i xor B_i;
 
+
   -------------------------------------------------------------------------------
   -- FLAG DETERMINATION
   -------------------------------------------------------------------------------
@@ -107,5 +109,6 @@ fix above with the borrow stuff
   Nfl_o <= '1' when sum(7) = '1' else '0';
   Hfl_o <= carry(3);
   Cfl_o <= carry(7);
+
 
 end Behavioural;
