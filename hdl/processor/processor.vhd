@@ -40,9 +40,8 @@ architecture Behavioural of processor is
   signal bus_we_i : STD_LOGIC;
 
   -- register file
-  signal regA, regF : STD_LOGIC_VECTOR(7 downto 0);
+  signal regA, regB, regC, regD, regE, regH, regL, regF : STD_LOGIC_VECTOR(7 downto 0);
   signal regA_in, regF_in : STD_LOGIC_VECTOR(7 downto 0);
-  --signal regA, regB, regC, regD, regE, regH, regL, regF : STD_LOGIC_VECTOR(7 downto 0);
   --signal regA_in, regB_in, regC_in, regD_in, regE_in, regH_in, regL_in, regF_in : STD_LOGIC_VECTOR(7 downto 0);
   --signal SP, PC, PC_nxt, PC_nxt_sum : STD_LOGIC_VECTOR(15 downto 0);
   signal IR : STD_LOGIC_VECTOR(7 downto 0);
@@ -53,7 +52,7 @@ architecture Behavioural of processor is
   signal ALU_operation : STD_LOGIC_VECTOR(2 downto 0);
   signal ALU_flags_in, ALU_flags_out : STD_LOGIC_VECTOR(3 downto 0);
   signal ALU_op1, ALU_op2, ALU_out : STD_LOGIC_VECTOR(7 downto 0);
-
+  signal CP_op2select : STD_LOGIC_VECTOR(2 downto 0);
 
   signal CPH_PC_OFFSET : STD_LOGIC_VECTOR(1 downto 0);
   signal PC_offset : integer range 0 to 65535;
@@ -113,6 +112,7 @@ architecture Behavioural of processor is
   alias CPH_PCnext : STD_LOGIC_VECTOR(2 downto 0) is CP_HELPER(45 downto 43);
   alias CPH_PCnext_incr_offset : STD_LOGIC_VECTOR(1 downto 0) is CP_HELPER(42 downto 41);
   alias CPH_affect_regA : STD_LOGIC is CP_HELPER(40);
+  alias CPH_ALUoperation : STD_LOGIC_VECTOR(2 downto 0) is CP_HELPER(39 downto 37);
 
   signal FSM_PCnext : STD_LOGIC;
 
@@ -153,10 +153,8 @@ begin
   PREG: process(reset_i, clock_i)
   begin
     if reset_i = '1' then 
-      regA <= x"00"; 
-      regF <= x"00"; 
-  --    regB <= x"00"; regC <= x"00"; regD <= x"00";
-  --    regE <= x"00"; regF <= x"00"; regH <= x"00"; regL <= x"00";
+      regA <= x"00"; regB <= x"00"; regC <= x"00"; regD <= x"00";
+      regE <= x"00"; regF <= x"00"; regH <= x"00"; regL <= x"00";
   --    SP <= (others => '0');
     elsif rising_edge(clock_i) then
       if FSM_ld_regA = '1' then regA <= regA_in; end if;
@@ -266,6 +264,25 @@ begin
   -------------------------------------------------------------------------------
   -- ALU
   -------------------------------------------------------------------------------
+  ALU_op1 <= regA;
+
+  PMUX_ALU_OP2: process(regA, regB, regC, regD, regE, regH, regL, bus_data_in_i, operand1)
+  begin
+    case CP_op2select is
+      when "000"  => ALU_op2 <= regB;
+      when "001"  => ALU_op2 <= regC;
+      when "010"  => ALU_op2 <= regD;
+      when "011"  => ALU_op2 <= regE;
+      when "100"  => ALU_op2 <= regH;
+      when "101"  => ALU_op2 <= regL;
+      when "110"  => ALU_op2 <= bus_data_in_i;
+      when others => ALU_op2 <= operand1;
+    end case;
+  end process;
+
+  ALU_flags_in <= regF(7 downto 4);
+  ALU_operation <= CPH_ALUoperation;
+
   ALU_inst00: component ALU port map(
     A => ALU_op1,
     B => ALU_op2,
@@ -275,10 +292,6 @@ begin
     operation => ALU_operation
   );
   
-
-
-
-
   -------------------------------------------------------------------------------
   -- CONTROL PATH
   -------------------------------------------------------------------------------
