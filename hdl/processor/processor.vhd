@@ -365,7 +365,7 @@ begin
   FSM_loadPC <= '1' when 
         curState = MC0_CC0 
         or curState = MC1_CC0 
-        or curState = MC2_CC0 or (curState = MC2_CC3 and CPH_MClimit(2) = '1')
+        or curState = MC2_CC0 or (curState = MC2_CC2 and CPH_MClimit(2) = '1')
         or curState = MC3_CC0
         or curState = MC4_CC0
         or curState = MC5_CC0
@@ -378,7 +378,7 @@ begin
   -- decides it's the instruction's influence that is allowed
   -- This signal (when '1') overrules to increment PC
   FSM_PCnext <= '0' when  
-        (curState = MC2_CC3) and (CPH_MClimit(2) = '1')
+        (curState = MC2_CC2) and (CPH_MClimit(2) = '1')
         else '1';
 
 
