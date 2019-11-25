@@ -1,5 +1,8 @@
 # Development journal
 
+## November 25th 2019
+While verifying simulation results, (after implementing some form of register file and ALU) I noticed the JUMP of the previous instruction was executed. That should be fixed first !!
+
 ## November 24th 2019
 Wow, this took me some time. With routing everything out, things broke down. Long story short, hread() and read() are not the same !! Duhu !! Nonetheless, that's only a single character over which I've read maybe 100 times. :@
 
