@@ -44,7 +44,7 @@ begin
   -------------------------------------------------------------------------------
   -- OUTPUT SELECTION
   -------------------------------------------------------------------------------
-  PMUX: process(operation_i, B_i, sum, Zfl_o, Nfl_o, Hfl_o, Cfl_o) --, l_and, l_xor, l_or, sum)
+  PMUX: process(operation_i, B_i, sum, Zfl_o, Nfl_o, Hfl_o, Cfl_o, l_and, l_xor, l_or, sum)
   begin
     B_ii <= B_i;
     C_i <= '0';
@@ -63,9 +63,10 @@ begin
 --      when "100"  => Z_i <= 
 --        Z_i <= l_and;
 --        flags_out <= Zfl_o & '0' & '1' & '0';
---      when "101"  => Z_i <= 
---        Z_i <= l_xor;
---        flags_out <= Zfl_o & '0' & '0' & '0';
+      when "101"  => -- xor
+        Z_i <= l_xor;
+        flags_out <= Zfl_o & '0' & '0' & '0';
+        C_i <= '0';
 --      when "110"  => Z_i <= 
 --        Z_i <= l_or;
 --        flags_out <= Zfl_o & '0' & '0' & '0';

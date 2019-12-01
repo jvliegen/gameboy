@@ -1,5 +1,9 @@
 # Development journal
 
+## December 1st 2019
+All hail the pipeline !!! Fixed the additional delay due to the BRAM. (Psst, I'm afraid it'll come back and it'll bite me in the **kuch**). Next up ... XOR A.
+... and done. I have taken care that the addressing of operands and the operations comes from the IR. Hopefully this will help in many other situations. This will however not be sufficient for all instructions. We'll see how far it carries me.
+
 ## November 25th 2019
 While verifying simulation results, (after implementing some form of register file and ALU) I noticed the JUMP of the previous instruction was executed. That should be fixed first !!
 Hmm, it turned to be an out-of-date issue between my CPHelper file in Google and the file on my machine.

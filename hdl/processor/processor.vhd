@@ -116,13 +116,14 @@ architecture Behavioural of processor is
 
   signal FSM_PCnext : STD_LOGIC;
 
-  type opcode_names is (NOP, JMP, ADC_n, UNDEFINED);
+  type opcode_names is (NOP, JMP, ADC_n, EXOR, UNDEFINED);
   signal opcode_name : opcode_names;
 
 begin
   
   with to_integer(unsigned(IR)) select
     opcode_name <= NOP when 0,
+                   EXOR when 175,
                    JMP when 195,
                    ADC_n when 206,
                    UNDEFINED when others;
@@ -170,6 +171,8 @@ begin
     end if;
   end process; -- ending PREG
 
+  FSM_ld_regA <= CPH_affect_regA when curState = MC0_CC3 else '0';
+  FSM_ld_regF <= CPH_affect_regA when curState = MC0_CC3 else '0';
   regA_in <= ALU_out;
   --regB_in <= operand1;
   --regC_in <= operand1;
@@ -266,7 +269,9 @@ begin
   -------------------------------------------------------------------------------
   ALU_op1 <= regA;
 
-  PMUX_ALU_OP2: process(regA, regB, regC, regD, regE, regH, regL, bus_data_in_i, operand1)
+  CP_op2select <= IR(2 downto 0) when CPH_affect_regA = '1' else "000";
+
+  PMUX_ALU_OP2: process(CP_op2select, regA, regB, regC, regD, regE, regH, regL, bus_data_in_i, operand1)
   begin
     case CP_op2select is
       when "000"  => ALU_op2 <= regB;
@@ -276,12 +281,13 @@ begin
       when "100"  => ALU_op2 <= regH;
       when "101"  => ALU_op2 <= regL;
       when "110"  => ALU_op2 <= bus_data_in_i;
-      when others => ALU_op2 <= operand1;
+      when others => ALU_op2 <= regA;
     end case;
   end process;
 
   ALU_flags_in <= regF(7 downto 4);
-  ALU_operation <= CPH_ALUoperation;
+  --ALU_operation <= CPH_ALUoperation;
+  ALU_operation <= IR(5 downto 3) when CPH_affect_regA = '1' else "000";
 
   ALU_inst00: component ALU port map(
     A => ALU_op1,
@@ -365,7 +371,7 @@ begin
   FSM_loadPC <= '1' when 
         curState = MC0_CC0 
         or curState = MC1_CC0 
-        or curState = MC2_CC0 or (curState = MC2_CC2 and CPH_MClimit(2) = '1')
+        or curState = MC2_CC0 or (curState = MC2_CC1 and CPH_MClimit(2) = '1')
         or curState = MC3_CC0
         or curState = MC4_CC0
         or curState = MC5_CC0
@@ -378,7 +384,7 @@ begin
   -- decides it's the instruction's influence that is allowed
   -- This signal (when '1') overrules to increment PC
   FSM_PCnext <= '0' when  
-        (curState = MC2_CC2) and (CPH_MClimit(2) = '1')
+        (curState = MC2_CC1) and (CPH_MClimit(2) = '1')
         else '1';
 
 
